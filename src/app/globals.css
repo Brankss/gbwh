@@ -1,29 +1,15 @@
 @import "tailwindcss";
 
 :root {
-  --bg: oklch(0.985 0.002 270);
-  --surface: oklch(1 0 0);
-  --surface-2: oklch(0.96 0.004 270);
-  --border: oklch(0.91 0.005 270);
-  --text: oklch(0.2 0.01 270);
-  --muted: oklch(0.55 0.012 270);
-  --ring: oklch(0.6 0.15 270 / 0.35);
-  --shadow: 0 1px 2px oklch(0 0 0 / 0.04), 0 8px 24px -12px oklch(0 0 0 / 0.12);
-  color-scheme: light;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: oklch(0.16 0.006 270);
-    --surface: oklch(0.2 0.007 270);
-    --surface-2: oklch(0.245 0.008 270);
-    --border: oklch(0.3 0.008 270);
-    --text: oklch(0.95 0.004 270);
-    --muted: oklch(0.68 0.01 270);
-    --ring: oklch(0.7 0.15 270 / 0.4);
-    --shadow: 0 1px 2px oklch(0 0 0 / 0.3), 0 8px 24px -12px oklch(0 0 0 / 0.6);
-    color-scheme: dark;
-  }
+  --bg: oklch(0.16 0.006 270);
+  --surface: oklch(0.2 0.007 270);
+  --surface-2: oklch(0.245 0.008 270);
+  --border: oklch(0.3 0.008 270);
+  --text: oklch(0.95 0.004 270);
+  --muted: oklch(0.68 0.01 270);
+  --ring: oklch(0.7 0.15 270 / 0.4);
+  --shadow: 0 1px 2px oklch(0 0 0 / 0.3), 0 8px 24px -12px oklch(0 0 0 / 0.6);
+  color-scheme: dark;
 }
 
 @theme inline {
