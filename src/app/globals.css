@@ -1,0 +1,136 @@
+@import "tailwindcss";
+
+:root {
+  --bg: oklch(0.985 0.002 270);
+  --surface: oklch(1 0 0);
+  --surface-2: oklch(0.96 0.004 270);
+  --border: oklch(0.91 0.005 270);
+  --text: oklch(0.2 0.01 270);
+  --muted: oklch(0.55 0.012 270);
+  --ring: oklch(0.6 0.15 270 / 0.35);
+  --shadow: 0 1px 2px oklch(0 0 0 / 0.04), 0 8px 24px -12px oklch(0 0 0 / 0.12);
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: oklch(0.16 0.006 270);
+    --surface: oklch(0.2 0.007 270);
+    --surface-2: oklch(0.245 0.008 270);
+    --border: oklch(0.3 0.008 270);
+    --text: oklch(0.95 0.004 270);
+    --muted: oklch(0.68 0.01 270);
+    --ring: oklch(0.7 0.15 270 / 0.4);
+    --shadow: 0 1px 2px oklch(0 0 0 / 0.3), 0 8px 24px -12px oklch(0 0 0 / 0.6);
+    color-scheme: dark;
+  }
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-line: var(--border);
+  --color-fg: var(--text);
+  --color-muted: var(--muted);
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+}
+
+html {
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-sans);
+}
+
+::selection {
+  background: var(--ring);
+}
+
+@layer components {
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 1.25rem;
+    box-shadow: var(--shadow);
+  }
+
+  .field {
+    background: var(--surface-2);
+    border: 1px solid transparent;
+    border-radius: 0.875rem;
+    padding: 0.7rem 0.9rem;
+    outline: none;
+    transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+  }
+  .field:focus {
+    background: var(--surface);
+    border-color: var(--border);
+    box-shadow: 0 0 0 4px var(--ring);
+  }
+
+  .btn-primary {
+    background: var(--text);
+    color: var(--bg);
+    border-radius: 0.875rem;
+    padding: 0.7rem 1rem;
+    font-weight: 500;
+    transition: transform 0.15s, opacity 0.15s;
+  }
+  .btn-primary:active {
+    transform: scale(0.98);
+  }
+  .btn-primary:disabled {
+    opacity: 0.6;
+  }
+
+  /* Colore del bot: ogni elemento imposta --hue e si prende la sua tinta. */
+  .tint {
+    --accent: oklch(0.64 0.16 var(--hue));
+    --accent-soft: oklch(0.64 0.16 var(--hue) / 0.14);
+  }
+
+  .scroll-thin {
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+}
+
+@keyframes pop {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.98);
+  }
+}
+@keyframes bounce-dot {
+  0%,
+  80%,
+  100% {
+    opacity: 0.3;
+    transform: translateY(0);
+  }
+  40% {
+    opacity: 1;
+    transform: translateY(-3px);
+  }
+}
+
+@utility animate-pop {
+  animation: pop 0.28s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+@utility animate-dot {
+  animation: bounce-dot 1.2s infinite ease-in-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
