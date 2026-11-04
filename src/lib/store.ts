@@ -1,11 +1,12 @@
 import "server-only";
 import { Redis } from "@upstash/redis";
-import { BOT_IDS, type BotId, type Inbox, type Message, type ReadAt } from "./bots";
+import { BOT_IDS, type BotId, type Inbox, type Message, type Note, type ReadAt } from "./bots";
 
 // Ultimi N messaggi tenuti per ogni chat.
 const KEEP = 300;
 const REV_KEY = "chat:rev";
 const READ_KEY = "chat:read";
+const NOTES_KEY = "chat:notes";
 const listKey = (bot: BotId) => `chat:${bot}`;
 
 const url = process.env.KV_REST_API_URL ?? process.env.UPSTASH_REDIS_REST_URL;
@@ -18,11 +19,12 @@ if (!redis && process.env.NODE_ENV === "production") {
 }
 
 // Fallback in memoria per lo sviluppo in locale (sopravvive all'hot reload).
-type Mem = { rev: number; lists: Inbox; read: ReadAt };
+type Mem = { rev: number; lists: Inbox; read: ReadAt; notes: Record<string, Note> };
 const mem = ((globalThis as { __chatMem?: Mem }).__chatMem ??= {
   rev: 0,
   lists: Object.fromEntries(BOT_IDS.map((id) => [id, []])) as unknown as Inbox,
   read: {},
+  notes: {},
 });
 
 export async function addMessage(msg: Message): Promise<void> {
@@ -46,20 +48,55 @@ export async function getRev(): Promise<number> {
   return mem.rev;
 }
 
-/** Tutti i messaggi + quando l'agent ha letto la bacheca l'ultima volta (per ogni bot). */
-export async function getSnapshot(): Promise<{ inbox: Inbox; read: ReadAt }> {
+export type Snapshot = { inbox: Inbox; read: ReadAt; notes: Note[] };
+
+const newestFirst = (notes: Note[]) => notes.sort((a, b) => b.ts - a.ts);
+
+/** Messaggi, stato "letto" per bot e annunci: tutto in una botta sola. */
+export async function getSnapshot(): Promise<Snapshot> {
   if (redis) {
     const p = redis.pipeline();
     for (const id of BOT_IDS) p.lrange<Message>(listKey(id), 0, -1);
     p.hgetall<Record<string, number>>(READ_KEY);
+    p.hgetall<Record<string, Note>>(NOTES_KEY);
     const res = await p.exec<unknown[]>();
     const inbox = Object.fromEntries(BOT_IDS.map((id, i) => [id, (res[i] as Message[]) ?? []])) as Inbox;
     const rawRead = (res[BOT_IDS.length] as Record<string, number> | null) ?? {};
     const read: ReadAt = {};
     for (const id of BOT_IDS) if (rawRead[id]) read[id] = Number(rawRead[id]);
-    return { inbox, read };
+    const notes = newestFirst(Object.values((res[BOT_IDS.length + 1] as Record<string, Note> | null) ?? {}));
+    return { inbox, read, notes };
   }
-  return structuredClone({ inbox: mem.lists, read: mem.read });
+  return structuredClone({ inbox: mem.lists, read: mem.read, notes: newestFirst(Object.values(mem.notes)) });
+}
+
+export async function saveNote(note: Note): Promise<void> {
+  if (redis) {
+    const p = redis.pipeline();
+    p.hset(NOTES_KEY, { [note.id]: note });
+    p.incr(REV_KEY);
+    await p.exec();
+    return;
+  }
+  mem.notes[note.id] = note;
+  mem.rev++;
+}
+
+export async function getNote(id: string): Promise<Note | null> {
+  if (redis) return (await redis.hget<Note>(NOTES_KEY, id)) ?? null;
+  return mem.notes[id] ?? null;
+}
+
+export async function deleteNote(id: string): Promise<void> {
+  if (redis) {
+    const p = redis.pipeline();
+    p.hdel(NOTES_KEY, id);
+    p.incr(REV_KEY);
+    await p.exec();
+    return;
+  }
+  delete mem.notes[id];
+  mem.rev++;
 }
 
 /** Segna che l'agent ha letto i messaggi di questi bot all'istante `at`. */

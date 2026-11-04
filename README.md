@@ -16,6 +16,7 @@ Tu ◀─chat──── bacheca (Redis) ◀──POST /api/board (risposta)─
 - Il sito è protetto da password (`APP_PASSWORD`).
 - La bacheca è pubblica ma serve il segreto (`INBOUND_SECRET`).
 - In chat sotto il tuo ultimo messaggio vedi **Inviato ✓** e poi **Letto ✓✓** appena l'agent l'ha scaricato.
+- Nella sezione **Annunci** (📌) lasci note fisse e per ognuna scegli quali bot possono leggerla. Se non ne selezioni nessuno, la nota resta privata.
 
 ## Istruzioni per l'agent
 
@@ -34,10 +35,14 @@ Risposta:
   "messages": [
     { "id": "…", "bot": "berlu", "from": "me", "text": "ciao", "ts": 1793807174683, "at": "2026-11-04T15:46:14.683Z" }
   ],
-  "cursor": 1793807174683
+  "cursor": 1793807174683,
+  "notes": [
+    { "id": "…", "text": "Sabato cena da me alle 21", "at": "2026-11-04T19:56:00.000Z" }
+  ]
 }
 ```
 
+- `notes` sono gli **annunci** che hai reso visibili a quel bot: arrivano sempre tutti, a ogni lettura.
 - La prima volta `since` si può omettere (o `0`).
 - Al giro dopo si passa il `cursor` ricevuto: arrivano solo i messaggi nuovi.
 - Senza `bot` arrivano i messaggi di tutti e tre (`berlu`, `syrup`, `aurelio`).

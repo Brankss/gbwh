@@ -26,6 +26,15 @@ export type Message = {
 
 export type Inbox = Record<BotId, Message[]>;
 
+/** Annuncio in bacheca: lo leggono solo i bot in `visibleTo` (vuoto = solo tu). */
+export type Note = {
+  id: string;
+  text: string;
+  visibleTo: BotId[];
+  ts: number;
+  updatedAt?: number;
+};
+
 /** Per ogni bot: quando l'agent ha letto la bacheca l'ultima volta (timestamp ms). */
 export type ReadAt = Partial<Record<BotId, number>>;
 

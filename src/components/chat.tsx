@@ -3,7 +3,9 @@
 import { useRouter } from "next/navigation";
 import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { logout } from "@/app/actions";
-import { BOTS, MAX_TEXT, isBotId, type BotId, type Inbox, type Media, type Message, type ReadAt } from "@/lib/bots";
+import { BOTS, MAX_TEXT, isBotId, type BotId, type Inbox, type Media, type Message, type Note, type ReadAt } from "@/lib/bots";
+import { Notes } from "./notes";
+import { Avatar, PinIcon, useAutosize } from "./ui";
 
 type LocalMessage = Message & { pending?: boolean; local?: boolean; failed?: boolean };
 
@@ -54,9 +56,12 @@ export function Chat() {
   const [loadedAt, setLoadedAt] = useState(0);
   const [read, setRead] = useState<ReadAt>({});
   const [viewer, setViewer] = useState<string | null>(null);
+  const [notes, setNotes] = useState<Note[] | null>(null);
   const rev = useRef(-1);
 
+  // Vista aperta: la chat di un bot oppure la bacheca annunci.
   const storedActive = useStored("chat:active");
+  const onNotes = storedActive === "notes";
   const active: BotId = isBotId(storedActive) ? storedActive : BOTS[0].id;
   const seenRaw = useStored("chat:seen");
   const lastSeen = useMemo(() => parseSeen(seenRaw), [seenRaw]);
@@ -68,12 +73,13 @@ export function Chat() {
       const res = await fetch(`/api/messages?rev=${rev.current}`, { cache: "no-store" });
       if (res.status === 401) return toLogin();
       if (!res.ok) return;
-      const data: { rev: number; inbox?: Inbox; read?: ReadAt } = await res.json();
+      const data: { rev: number; inbox?: Inbox; read?: ReadAt; notes?: Note[] } = await res.json();
       rev.current = data.rev;
       if (data.inbox) {
         setLoadedAt((t) => t || Date.now());
         setInbox(data.inbox);
         setRead(data.read ?? {});
+        setNotes(data.notes ?? []);
       }
     } catch {
       // Rete ballerina: riproviamo al prossimo giro.
@@ -106,25 +112,29 @@ export function Chat() {
   // Segna come letta la chat aperta.
   const newest = messages.at(-1)?.ts ?? 0;
   useEffect(() => {
-    if (!inbox || (lastSeen[active] ?? 0) >= newest) return;
+    if (!inbox || onNotes || (lastSeen[active] ?? 0) >= newest) return;
     writeStorage("chat:seen", JSON.stringify({ ...lastSeen, [active]: newest }));
-  }, [active, newest, inbox, lastSeen]);
+  }, [active, newest, inbox, lastSeen, onNotes]);
 
   const unread = useMemo(() => {
     const out = {} as Record<BotId, number>;
     for (const b of BOTS) {
       const seen = lastSeen[b.id] ?? 0;
-      out[b.id] = b.id === active ? 0 : (inbox?.[b.id] ?? []).filter((m) => m.from === "bot" && m.ts > seen).length;
+      out[b.id] = b.id === active && !onNotes ? 0 : (inbox?.[b.id] ?? []).filter((m) => m.from === "bot" && m.ts > seen).length;
     }
     return out;
-  }, [inbox, lastSeen, active]);
+  }, [inbox, lastSeen, active, onNotes]);
 
   const totalUnread = Object.values(unread).reduce((a, b) => a + b, 0);
   useEffect(() => {
     document.title = totalUnread ? `(${totalUnread}) Chat` : "Chat";
   }, [totalUnread]);
 
-  const selectBot = (id: BotId) => writeStorage("chat:active", id);
+  const selectBot = (id: BotId | "notes") => writeStorage("chat:active", id);
+  const forceRefresh = useCallback(() => {
+    rev.current = -1;
+    refresh();
+  }, [refresh]);
 
   const send = useCallback(
     async (bot: BotId, text: string) => {
@@ -178,9 +188,25 @@ export function Chat() {
           <LogoutButton />
         </div>
         <nav className="flex flex-col gap-1 px-3">
+          <button
+            onClick={() => selectBot("notes")}
+            className={`mb-2 flex items-center gap-3 rounded-2xl px-3 py-2.5 text-left transition-colors ${
+              onNotes ? "gloss" : "border border-transparent hover:bg-surface-2"
+            }`}
+          >
+            <Avatar name="Annunci" size={40}>
+              <PinIcon />
+            </Avatar>
+            <div className="min-w-0 flex-1">
+              <div className="font-medium">Annunci</div>
+              <p className="truncate text-sm text-muted">
+                {notes?.length ? `${notes.length} ${notes.length === 1 ? "nota" : "note"} in bacheca` : "Bacheca per i bot"}
+              </p>
+            </div>
+          </button>
           {BOTS.map((b) => {
             const lastMsg = inbox?.[b.id]?.at(-1);
-            const selected = b.id === active;
+            const selected = b.id === active && !onNotes;
             return (
               <button
                 key={b.id}
@@ -218,10 +244,12 @@ export function Chat() {
                   key={b.id}
                   onClick={() => selectBot(b.id)}
                   className={`relative flex flex-1 items-center justify-center gap-1.5 rounded-xl py-1.5 text-sm font-medium transition-all ${
-                    b.id === active ? "gloss" : "border border-transparent text-muted"
+                    b.id === active && !onNotes ? "gloss" : "border border-transparent text-muted"
                   }`}
                 >
-                  <Avatar name={b.name} size={20} />
+                  <span className="max-[380px]:hidden">
+                    <Avatar name={b.name} size={20} />
+                  </span>
                   {b.name}
                   {unread[b.id] > 0 && (
                     <span className="absolute top-1 right-1.5 size-2 rounded-full bg-white shadow-[0_0_6px_rgb(255_255_255/0.6)]" />
@@ -229,16 +257,45 @@ export function Chat() {
                 </button>
               ))}
             </div>
+            <button
+              onClick={() => selectBot("notes")}
+              aria-label="Annunci"
+              title="Annunci"
+              className={`grid size-9 shrink-0 place-items-center rounded-full transition-colors ${
+                onNotes ? "gloss" : "text-muted hover:bg-surface-2 hover:text-fg"
+              }`}
+            >
+              <PinIcon className="size-4.5" />
+            </button>
             <LogoutButton />
           </div>
           <div className="hidden items-center gap-3 px-6 py-3.5 md:flex">
-            <Avatar name={bot.name} size={36} />
-            <div>
-              <div className="font-medium leading-tight">{bot.name}</div>
-              <div className="text-xs text-muted">{status}</div>
-            </div>
+            {onNotes ? (
+              <>
+                <Avatar name="Annunci" size={36}>
+                  <PinIcon />
+                </Avatar>
+                <div>
+                  <div className="font-medium leading-tight">Annunci</div>
+                  <div className="text-xs text-muted">per ogni nota scegli quali bot possono leggerla</div>
+                </div>
+              </>
+            ) : (
+              <>
+                <Avatar name={bot.name} size={36} />
+                <div>
+                  <div className="font-medium leading-tight">{bot.name}</div>
+                  <div className="text-xs text-muted">{status}</div>
+                </div>
+              </>
+            )}
           </div>
         </header>
+
+        {onNotes ? (
+          <Notes notes={notes} onChanged={forceRefresh} />
+        ) : (
+          <>
 
         <MessageList
           key={active}
@@ -254,6 +311,8 @@ export function Chat() {
         />
 
         <Composer key={`c-${active}`} name={bot.name} onSend={(t) => send(active, t)} />
+          </>
+        )}
       </main>
 
       {viewer && <Lightbox src={viewer} onClose={() => setViewer(null)} />}
@@ -499,13 +558,7 @@ function Composer({ name, onSend }: { name: string; onSend: (text: string) => vo
   const [text, setText] = useState("");
   const ref = useRef<HTMLTextAreaElement>(null);
 
-  // Textarea che cresce col testo (fino a un massimo, poi scrolla).
-  useLayoutEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    el.style.height = "auto";
-    el.style.height = `${Math.min(el.scrollHeight, 200)}px`;
-  }, [text]);
+  useAutosize(ref, text);
 
   useEffect(() => {
     // Su desktop metti subito il focus; su mobile no, sennò ti apre la tastiera a caso.
@@ -561,18 +614,6 @@ function Composer({ name, onSend }: { name: string; onSend: (text: string) => vo
 }
 
 /* ------------------------------------------------------------------ */
-
-function Avatar({ name, size }: { name: string; size: number }) {
-  return (
-    <span
-      aria-hidden
-      className="orb grid shrink-0 place-items-center rounded-full font-semibold"
-      style={{ width: size, height: size, fontSize: size * 0.42 }}
-    >
-      {name[0]}
-    </span>
-  );
-}
 
 function Badge({ count }: { count: number }) {
   return (

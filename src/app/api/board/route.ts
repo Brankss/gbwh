@@ -11,7 +11,8 @@ import { addMessage, getSnapshot, markRead } from "@/lib/store";
  *
  * LEGGERE i messaggi nuovi:
  *   GET /api/board?bot=berlu&since=<cursor>
- *   -> { messages: [{ id, bot, from, text, ts, at }], cursor }
+ *   -> { messages: [{ id, bot, from, text, ts, at }], cursor, notes: [{ id, text, at }] }
+ *   `notes` sono gli annunci che hai reso visibili a quel bot (arrivano sempre tutti).
  *   Al giro dopo si passa `since=<cursor>` ricevuto. Senza `bot` arrivano tutti e tre.
  *   Di default solo i messaggi scritti da te; con `&all=1` anche le risposte dei bot (utile come contesto).
  *
@@ -47,7 +48,7 @@ export async function GET(request: NextRequest) {
 
   // Preso PRIMA di leggere: tutto quello che c'è nello snapshot è più vecchio di così.
   const readAt = Date.now();
-  const { inbox, read } = await getSnapshot();
+  const { inbox, read, notes } = await getSnapshot();
 
   const messages = bots
     .flatMap((b) => inbox[b])
@@ -62,7 +63,18 @@ export async function GET(request: NextRequest) {
   await markRead(toMark, readAt);
 
   const cursor = messages.reduce((max, m) => Math.max(max, m.ts), since);
-  return Response.json({ messages, cursor }, { headers: noStore });
+
+  // Annunci: sempre tutti quelli visibili a questo bot (sono pochi e possono cambiare).
+  const visibleNotes = notes
+    .filter((n) => (botParam ? n.visibleTo.includes(botParam as BotId) : n.visibleTo.length > 0))
+    .map(({ id, text, ts, updatedAt, visibleTo }) => ({
+      id,
+      text,
+      at: new Date(updatedAt ?? ts).toISOString(),
+      ...(botParam ? {} : { visibleTo }),
+    }));
+
+  return Response.json({ messages, cursor, notes: visibleNotes }, { headers: noStore });
 }
 
 const MAX_MEDIA = 10;

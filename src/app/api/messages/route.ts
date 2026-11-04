@@ -9,6 +9,6 @@ export async function GET(request: NextRequest) {
 
   if (rev === known) return Response.json({ rev }, { headers });
 
-  const { inbox, read } = await getSnapshot();
-  return Response.json({ rev, inbox, read }, { headers });
+  const snapshot = await getSnapshot();
+  return Response.json({ rev, ...snapshot }, { headers });
 }
