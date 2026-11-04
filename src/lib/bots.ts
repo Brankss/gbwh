@@ -1,8 +1,8 @@
 // Config pubblica dei bot: niente segreti qui, questo file finisce anche nel browser.
 export const BOTS = [
-  { id: "berlu", name: "Berlusc", hue: 24 },
-  { id: "syrup", name: "Syrup", hue: 300 },
-  { id: "aurelio", name: "Aurelio", hue: 200 },
+  { id: "berlu", name: "Berlusc" },
+  { id: "syrup", name: "Syrup" },
+  { id: "aurelio", name: "Aurelio" },
 ] as const;
 
 export type BotId = (typeof BOTS)[number]["id"];

@@ -1,14 +1,16 @@
 @import "tailwindcss";
 
+/* Palette: nero opaco (superfici) + nero lucido (elementi in evidenza). */
 :root {
-  --bg: oklch(0.16 0.006 270);
-  --surface: oklch(0.2 0.007 270);
-  --surface-2: oklch(0.245 0.008 270);
-  --border: oklch(0.3 0.008 270);
-  --text: oklch(0.95 0.004 270);
-  --muted: oklch(0.68 0.01 270);
-  --ring: oklch(0.7 0.15 270 / 0.4);
-  --shadow: 0 1px 2px oklch(0 0 0 / 0.3), 0 8px 24px -12px oklch(0 0 0 / 0.6);
+  --bg: #070707;
+  --surface: #0d0d0d;
+  --surface-2: #141414;
+  --border: #1d1d1d;
+  --text: #ededed;
+  --muted: #7a7a7a;
+  --ring: rgb(255 255 255 / 0.12);
+  /* Grana finissima per l'effetto opaco. */
+  --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.5'/%3E%3C/svg%3E");
   color-scheme: dark;
 }
 
@@ -33,39 +35,93 @@ body {
   font-family: var(--font-sans);
 }
 
+/* Grana sopra tutto lo sfondo, non intercetta i click. */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  pointer-events: none;
+  background-image: var(--grain);
+  opacity: 0.035;
+  mix-blend-mode: overlay;
+}
+
 ::selection {
-  background: var(--ring);
+  background: rgb(255 255 255 / 0.2);
 }
 
 @layer components {
+  /* Nero opaco: piatto, nessun riflesso. */
+  .matte {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+  }
+
+  /* Nero lucido: gradiente scuro, filo di luce in alto e riflesso morbido. */
+  .gloss {
+    position: relative;
+    isolation: isolate;
+    background: linear-gradient(180deg, #2b2b2b 0%, #121212 48%, #040404 100%);
+    border: 1px solid #262626;
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.16),
+      inset 0 -1px 0 rgb(0 0 0 / 0.7),
+      0 10px 28px -12px rgb(0 0 0 / 0.9);
+    color: #f5f5f5;
+  }
+  .gloss::after {
+    content: "";
+    position: absolute;
+    inset: 1px 1px 50% 1px;
+    z-index: -1;
+    border-radius: inherit;
+    border-bottom-left-radius: 40% 30%;
+    border-bottom-right-radius: 40% 30%;
+    background: linear-gradient(180deg, rgb(255 255 255 / 0.1), rgb(255 255 255 / 0.01));
+    pointer-events: none;
+  }
+
+  /* Sfera lucida per gli avatar. */
+  .orb {
+    background: radial-gradient(circle at 32% 26%, #5a5a5a 0%, #1c1c1c 38%, #050505 70%, #000 100%);
+    box-shadow:
+      inset 0 -2px 4px rgb(0 0 0 / 0.8),
+      0 0 0 1px #262626,
+      0 4px 12px -4px rgb(0 0 0 / 0.9);
+    color: #f0f0f0;
+  }
+
   .card {
-    background: var(--surface);
+    background: linear-gradient(180deg, #141414, #0a0a0a);
     border: 1px solid var(--border);
     border-radius: 1.25rem;
-    box-shadow: var(--shadow);
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.06),
+      0 24px 60px -20px rgb(0 0 0 / 0.9);
   }
 
   .field {
     background: var(--surface-2);
-    border: 1px solid transparent;
+    border: 1px solid var(--border);
     border-radius: 0.875rem;
     padding: 0.7rem 0.9rem;
     outline: none;
-    transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+    transition: border-color 0.15s, box-shadow 0.15s;
   }
   .field:focus {
-    background: var(--surface);
-    border-color: var(--border);
+    border-color: #2e2e2e;
     box-shadow: 0 0 0 4px var(--ring);
   }
 
   .btn-primary {
-    background: var(--text);
-    color: var(--bg);
     border-radius: 0.875rem;
     padding: 0.7rem 1rem;
     font-weight: 500;
-    transition: transform 0.15s, opacity 0.15s;
+    transition: transform 0.15s, opacity 0.15s, filter 0.15s;
+  }
+  .btn-primary:hover {
+    filter: brightness(1.25);
   }
   .btn-primary:active {
     transform: scale(0.98);
@@ -74,15 +130,9 @@ body {
     opacity: 0.6;
   }
 
-  /* Colore del bot: ogni elemento imposta --hue e si prende la sua tinta. */
-  .tint {
-    --accent: oklch(0.64 0.16 var(--hue));
-    --accent-soft: oklch(0.64 0.16 var(--hue) / 0.14);
-  }
-
   .scroll-thin {
     scrollbar-width: thin;
-    scrollbar-color: var(--border) transparent;
+    scrollbar-color: #222 transparent;
   }
 }
 

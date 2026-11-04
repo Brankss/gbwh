@@ -23,7 +23,7 @@ export default function LoginPage() {
           className="field w-full"
         />
         {error && <p className="text-sm text-red-500">{error}</p>}
-        <button disabled={pending} className="btn-primary w-full">
+        <button disabled={pending} className="gloss btn-primary w-full">
           {pending ? "Entro…" : "Entra"}
         </button>
       </form>

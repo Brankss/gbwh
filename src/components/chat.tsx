@@ -178,10 +178,10 @@ export function Chat() {
                 key={b.id}
                 onClick={() => selectBot(b.id)}
                 className={`flex items-center gap-3 rounded-2xl px-3 py-2.5 text-left transition-colors ${
-                  selected ? "bg-surface-2" : "hover:bg-surface-2/60"
+                  selected ? "gloss" : "border border-transparent hover:bg-surface-2"
                 }`}
               >
-                <Avatar hue={b.hue} name={b.name} size={40} />
+                <Avatar name={b.name} size={40} />
                 <div className="min-w-0 flex-1">
                   <div className="flex items-baseline justify-between gap-2">
                     <span className="font-medium">{b.name}</span>
@@ -191,7 +191,7 @@ export function Chat() {
                     <p className="truncate text-sm text-muted">
                       {lastMsg ? `${lastMsg.from === "me" ? "Tu: " : ""}${lastMsg.text}` : "Nessun messaggio"}
                     </p>
-                    {unread[b.id] > 0 && <Badge hue={b.hue} count={unread[b.id]} />}
+                    {unread[b.id] > 0 && <Badge count={unread[b.id]} />}
                   </div>
                 </div>
               </button>
@@ -204,22 +204,19 @@ export function Chat() {
         {/* Header */}
         <header className="border-b border-line bg-bg/80 backdrop-blur-xl">
           <div className="flex items-center gap-2 p-2 md:hidden">
-            <div className="flex flex-1 gap-1 rounded-2xl bg-surface-2 p-1">
+            <div className="matte flex flex-1 gap-1 rounded-2xl p-1">
               {BOTS.map((b) => (
                 <button
                   key={b.id}
                   onClick={() => selectBot(b.id)}
                   className={`relative flex flex-1 items-center justify-center gap-1.5 rounded-xl py-1.5 text-sm font-medium transition-all ${
-                    b.id === active ? "bg-surface shadow-sm" : "text-muted"
+                    b.id === active ? "gloss" : "border border-transparent text-muted"
                   }`}
                 >
-                  <Avatar hue={b.hue} name={b.name} size={20} />
+                  <Avatar name={b.name} size={20} />
                   {b.name}
                   {unread[b.id] > 0 && (
-                    <span
-                      className="tint absolute top-1 right-1.5 size-2 rounded-full bg-(--accent)"
-                      style={{ "--hue": b.hue } as React.CSSProperties}
-                    />
+                    <span className="absolute top-1 right-1.5 size-2 rounded-full bg-white shadow-[0_0_6px_rgb(255_255_255/0.6)]" />
                   )}
                 </button>
               ))}
@@ -227,7 +224,7 @@ export function Chat() {
             <LogoutButton />
           </div>
           <div className="hidden items-center gap-3 px-6 py-3.5 md:flex">
-            <Avatar hue={bot.hue} name={bot.name} size={36} />
+            <Avatar name={bot.name} size={36} />
             <div>
               <div className="font-medium leading-tight">{bot.name}</div>
               <div className="text-xs text-muted">{waiting ? "sta rispondendo…" : "bot"}</div>
@@ -239,14 +236,13 @@ export function Chat() {
           key={active}
           messages={messages}
           botName={bot.name}
-          hue={bot.hue}
           loading={!inbox}
           animateAfter={loadedAt}
           waitingSince={waiting ? last!.ts : 0}
           onRetry={retry}
         />
 
-        <Composer key={`c-${active}`} hue={bot.hue} name={bot.name} onSend={(t) => send(active, t)} />
+        <Composer key={`c-${active}`} name={bot.name} onSend={(t) => send(active, t)} />
       </main>
     </div>
   );
@@ -257,7 +253,6 @@ export function Chat() {
 const MessageList = memo(function MessageList({
   messages,
   botName,
-  hue,
   loading,
   animateAfter,
   waitingSince,
@@ -265,7 +260,6 @@ const MessageList = memo(function MessageList({
 }: {
   messages: LocalMessage[];
   botName: string;
-  hue: number;
   loading: boolean;
   animateAfter: number;
   waitingSince: number;
@@ -293,12 +287,12 @@ const MessageList = memo(function MessageList({
 
   return (
     <div ref={ref} onScroll={onScroll} className="scroll-thin flex-1 overflow-y-auto overscroll-contain">
-      <div className="tint mx-auto flex min-h-full max-w-3xl flex-col justify-end px-4 py-6 md:px-6" style={{ "--hue": hue } as React.CSSProperties}>
+      <div className="mx-auto flex min-h-full max-w-3xl flex-col justify-end px-4 py-6 md:px-6">
         {loading ? (
           <Skeleton />
         ) : messages.length === 0 ? (
           <div className="m-auto flex flex-col items-center gap-3 text-center animate-pop">
-            <Avatar hue={hue} name={botName} size={64} />
+            <Avatar name={botName} size={64} />
             <p className="text-muted">Scrivi qualcosa a {botName} ✨</p>
           </div>
         ) : (
@@ -346,7 +340,7 @@ function Bubble({
     <div className={`flex flex-col ${mine ? "items-end" : "items-start"} ${tight ? "mt-0.5" : "mt-3"} ${animate ? "animate-pop" : ""}`}>
       <div
         className={`max-w-[85%] whitespace-pre-wrap break-words px-3.5 py-2 text-[15px] leading-relaxed md:max-w-[70%] ${
-          mine ? "rounded-[1.25rem] rounded-br-md bg-(--accent) text-white" : "rounded-[1.25rem] rounded-bl-md bg-surface-2"
+          mine ? "gloss rounded-[1.25rem] rounded-br-md" : "matte rounded-[1.25rem] rounded-bl-md"
         } ${m.pending ? "opacity-60" : ""} ${m.failed ? "opacity-70 ring-1 ring-red-500/60" : ""} transition-opacity`}
       >
         {m.text}
@@ -372,7 +366,7 @@ function Typing({ since }: { since: number }) {
   if (!visible) return null;
   return (
     <div className="mt-3 flex animate-pop">
-      <div className="flex gap-1 rounded-[1.25rem] rounded-bl-md bg-surface-2 px-4 py-3.5">
+      <div className="matte flex gap-1 rounded-[1.25rem] rounded-bl-md px-4 py-3.5">
         {[0, 1, 2].map((i) => (
           <span key={i} className="size-1.5 rounded-full bg-muted animate-dot" style={{ animationDelay: `${i * 0.15}s` }} />
         ))}
@@ -381,7 +375,7 @@ function Typing({ since }: { since: number }) {
   );
 }
 
-function Composer({ hue, name, onSend }: { hue: number; name: string; onSend: (text: string) => void }) {
+function Composer({ name, onSend }: { name: string; onSend: (text: string) => void }) {
   const [text, setText] = useState("");
   const ref = useRef<HTMLTextAreaElement>(null);
 
@@ -413,8 +407,7 @@ function Composer({ hue, name, onSend }: { hue: number; name: string; onSend: (t
           e.preventDefault();
           submit();
         }}
-        className="tint mx-auto flex max-w-3xl items-end gap-2 rounded-[1.5rem] border border-line bg-surface p-1.5 pl-4 shadow-(--shadow) transition-shadow focus-within:shadow-[0_0_0_4px_var(--accent-soft)]"
-        style={{ "--hue": hue } as React.CSSProperties}
+        className="gloss mx-auto flex max-w-3xl items-end gap-2 rounded-[1.5rem] p-1.5 pl-4 transition-[border-color] focus-within:border-[#3a3a3a]"
       >
         <textarea
           ref={ref}
@@ -436,7 +429,7 @@ function Composer({ hue, name, onSend }: { hue: number; name: string; onSend: (t
           type="submit"
           disabled={!text.trim()}
           aria-label="Invia"
-          className="grid size-9 shrink-0 place-items-center rounded-full bg-(--accent) text-white transition-all enabled:hover:brightness-110 enabled:active:scale-90 disabled:scale-90 disabled:opacity-30"
+          className="orb grid size-9 shrink-0 place-items-center rounded-full transition-all enabled:hover:brightness-150 enabled:active:scale-90 disabled:scale-90 disabled:opacity-30"
         >
           <svg viewBox="0 0 24 24" className="size-4.5" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
             <path d="M12 19V5M5 12l7-7 7 7" />
@@ -449,29 +442,21 @@ function Composer({ hue, name, onSend }: { hue: number; name: string; onSend: (t
 
 /* ------------------------------------------------------------------ */
 
-function Avatar({ hue, name, size }: { hue: number; name: string; size: number }) {
+function Avatar({ name, size }: { name: string; size: number }) {
   return (
     <span
       aria-hidden
-      className="grid shrink-0 place-items-center rounded-full font-semibold text-white"
-      style={{
-        width: size,
-        height: size,
-        fontSize: size * 0.42,
-        background: `linear-gradient(135deg, oklch(0.72 0.16 ${hue}), oklch(0.55 0.18 ${hue + 30}))`,
-      }}
+      className="orb grid shrink-0 place-items-center rounded-full font-semibold"
+      style={{ width: size, height: size, fontSize: size * 0.42 }}
     >
       {name[0]}
     </span>
   );
 }
 
-function Badge({ hue, count }: { hue: number; count: number }) {
+function Badge({ count }: { count: number }) {
   return (
-    <span
-      className="tint grid h-5 min-w-5 place-items-center rounded-full bg-(--accent) px-1.5 text-[11px] font-semibold text-white animate-pop"
-      style={{ "--hue": hue } as React.CSSProperties}
-    >
+    <span className="grid h-5 min-w-5 place-items-center rounded-full bg-white px-1.5 text-[11px] font-semibold text-black animate-pop">
       {count > 99 ? "99+" : count}
     </span>
   );
@@ -496,7 +481,7 @@ function LogoutButton() {
 function DaySeparator({ ts }: { ts: number }) {
   return (
     <div className="my-4 flex justify-center">
-      <span className="rounded-full bg-surface-2 px-3 py-1 text-[11px] font-medium text-muted">{formatDay(ts)}</span>
+      <span className="matte rounded-full px-3 py-1 text-[11px] font-medium text-muted">{formatDay(ts)}</span>
     </div>
   );
 }
