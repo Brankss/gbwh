@@ -41,6 +41,19 @@ function writeStorage(key: string, value: string) {
 function useStored(key: string) {
   return useSyncExternalStore(subscribeStorage, () => readStorage(key), () => null);
 }
+const DESKTOP_MQ = "(min-width: 768px)";
+function useIsDesktop() {
+  return useSyncExternalStore(
+    (cb) => {
+      const mq = matchMedia(DESKTOP_MQ);
+      mq.addEventListener("change", cb);
+      return () => mq.removeEventListener("change", cb);
+    },
+    () => matchMedia(DESKTOP_MQ).matches,
+    () => true,
+  );
+}
+
 function parseSeen(raw: string | null): Partial<Record<BotId, number>> {
   try {
     return raw ? JSON.parse(raw) : {};
@@ -57,12 +70,17 @@ export function Chat() {
   const [read, setRead] = useState<ReadAt>({});
   const [viewer, setViewer] = useState<string | null>(null);
   const [notes, setNotes] = useState<Note[] | null>(null);
+  // Su mobile: false = lista chat, true = chat aperta. Su desktop si vedono entrambe.
+  const [mobileDetail, setMobileDetail] = useState(false);
+  const isDesktop = useIsDesktop();
   const rev = useRef(-1);
 
   // Vista aperta: la chat di un bot oppure la bacheca annunci.
   const storedActive = useStored("chat:active");
   const onNotes = storedActive === "notes";
   const active: BotId = isBotId(storedActive) ? storedActive : BOTS[0].id;
+  // La chat conta come "aperta" (messaggi letti) solo se la stai guardando davvero.
+  const chatOpen = !onNotes && (isDesktop || mobileDetail);
   const seenRaw = useStored("chat:seen");
   const lastSeen = useMemo(() => parseSeen(seenRaw), [seenRaw]);
 
@@ -112,18 +130,18 @@ export function Chat() {
   // Segna come letta la chat aperta.
   const newest = messages.at(-1)?.ts ?? 0;
   useEffect(() => {
-    if (!inbox || onNotes || (lastSeen[active] ?? 0) >= newest) return;
+    if (!inbox || !chatOpen || (lastSeen[active] ?? 0) >= newest) return;
     writeStorage("chat:seen", JSON.stringify({ ...lastSeen, [active]: newest }));
-  }, [active, newest, inbox, lastSeen, onNotes]);
+  }, [active, newest, inbox, lastSeen, chatOpen]);
 
   const unread = useMemo(() => {
     const out = {} as Record<BotId, number>;
     for (const b of BOTS) {
       const seen = lastSeen[b.id] ?? 0;
-      out[b.id] = b.id === active && !onNotes ? 0 : (inbox?.[b.id] ?? []).filter((m) => m.from === "bot" && m.ts > seen).length;
+      out[b.id] = b.id === active && chatOpen ? 0 : (inbox?.[b.id] ?? []).filter((m) => m.from === "bot" && m.ts > seen).length;
     }
     return out;
-  }, [inbox, lastSeen, active, onNotes]);
+  }, [inbox, lastSeen, active, chatOpen]);
 
   const totalUnread = Object.values(unread).reduce((a, b) => a + b, 0);
   useEffect(() => {
@@ -131,6 +149,25 @@ export function Chat() {
   }, [totalUnread]);
 
   const selectBot = (id: BotId | "notes") => writeStorage("chat:active", id);
+
+  // Apri una chat. Su mobile aggiunge un passo alla cronologia: il tasto indietro torna alla lista.
+  const open = (id: BotId | "notes") => {
+    selectBot(id);
+    if (!isDesktop && !mobileDetail) {
+      history.pushState({ chatDetail: true }, "");
+      setMobileDetail(true);
+    }
+  };
+  const back = () => {
+    if (history.state?.chatDetail) history.back();
+    else setMobileDetail(false);
+  };
+  useEffect(() => {
+    const onPop = () => setMobileDetail(!!history.state?.chatDetail);
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
+  }, []);
+
   const forceRefresh = useCallback(() => {
     rev.current = -1;
     refresh();
@@ -179,22 +216,47 @@ export function Chat() {
   const agentRead = awaitingReply && readAt >= last.ts;
   const status = agentRead ? "ha letto, sta rispondendo…" : awaitingReply ? "in attesa che passi a leggere" : "agent";
 
+  // Bot ordinati per ultima attività (come le chat su WhatsApp); senza messaggi restano in fondo, in ordine.
+  const sortedBots = [...BOTS].sort((a, b) => (inbox?.[b.id]?.at(-1)?.ts ?? 0) - (inbox?.[a.id]?.at(-1)?.ts ?? 0));
+
+  const title = onNotes ? (
+    <>
+      <Avatar name="Annunci" size={36}>
+        <PinIcon />
+      </Avatar>
+      <div className="min-w-0">
+        <div className="font-medium leading-tight">Annunci</div>
+        <div className="truncate text-xs text-muted">per ogni nota scegli quali bot possono leggerla</div>
+      </div>
+    </>
+  ) : (
+    <>
+      <Avatar name={bot.name} size={36} />
+      <div className="min-w-0">
+        <div className="font-medium leading-tight">{bot.name}</div>
+        <div className="truncate text-xs text-muted">{status}</div>
+      </div>
+    </>
+  );
+
   return (
     <div className="flex h-dvh overflow-hidden">
-      {/* Sidebar desktop */}
-      <aside className="hidden w-72 shrink-0 flex-col border-r border-line bg-surface md:flex">
+      {/* Lista chat: sidebar su desktop, home su mobile */}
+      <aside
+        className={`${mobileDetail ? "hidden" : "flex"} w-full flex-col bg-surface md:flex md:w-72 md:shrink-0 md:border-r md:border-line`}
+      >
         <div className="flex items-center justify-between px-5 pt-6 pb-4">
           <h1 className="text-lg font-semibold tracking-tight">Chat</h1>
           <LogoutButton />
         </div>
-        <nav className="flex flex-col gap-1 px-3">
+        <nav className="scroll-thin flex flex-1 flex-col gap-1 overflow-y-auto px-3 pb-24 md:pb-6">
           <button
-            onClick={() => selectBot("notes")}
-            className={`mb-2 flex items-center gap-3 rounded-2xl px-3 py-2.5 text-left transition-colors ${
-              onNotes ? "gloss" : "border border-transparent hover:bg-surface-2"
+            onClick={() => open("notes")}
+            className={`flex items-center gap-3 rounded-2xl px-3 py-2.5 text-left transition-colors ${
+              onNotes && isDesktop ? "gloss" : "border border-transparent hover:bg-surface-2"
             }`}
           >
-            <Avatar name="Annunci" size={40}>
+            <Avatar name="Annunci" size={44}>
               <PinIcon />
             </Avatar>
             <div className="min-w-0 flex-1">
@@ -204,18 +266,24 @@ export function Chat() {
               </p>
             </div>
           </button>
-          {BOTS.map((b) => {
+
+          <div className="mt-4 mb-1 flex items-center justify-between px-3 text-[11px] font-medium tracking-wider text-muted uppercase">
+            <span>Bot</span>
+            <span>{BOTS.length}</span>
+          </div>
+
+          {sortedBots.map((b) => {
             const lastMsg = inbox?.[b.id]?.at(-1);
-            const selected = b.id === active && !onNotes;
+            const selected = b.id === active && !onNotes && isDesktop;
             return (
               <button
                 key={b.id}
-                onClick={() => selectBot(b.id)}
+                onClick={() => open(b.id)}
                 className={`flex items-center gap-3 rounded-2xl px-3 py-2.5 text-left transition-colors ${
                   selected ? "gloss" : "border border-transparent hover:bg-surface-2"
                 }`}
               >
-                <Avatar name={b.name} size={40} />
+                <Avatar name={b.name} size={44} />
                 <div className="min-w-0 flex-1">
                   <div className="flex items-baseline justify-between gap-2">
                     <span className="font-medium">{b.name}</span>
@@ -234,62 +302,23 @@ export function Chat() {
         </nav>
       </aside>
 
-      <main className="flex min-w-0 flex-1 flex-col">
-        {/* Header */}
+      <main className={`${mobileDetail ? "flex" : "hidden"} min-w-0 flex-1 flex-col md:flex`}>
         <header className="border-b border-line bg-bg/80 backdrop-blur-xl">
-          <div className="flex items-center gap-2 p-2 md:hidden">
-            <div className="matte flex flex-1 gap-1 rounded-2xl p-1">
-              {BOTS.map((b) => (
-                <button
-                  key={b.id}
-                  onClick={() => selectBot(b.id)}
-                  className={`relative flex flex-1 items-center justify-center gap-1.5 rounded-xl py-1.5 text-sm font-medium transition-all ${
-                    b.id === active && !onNotes ? "gloss" : "border border-transparent text-muted"
-                  }`}
-                >
-                  <span className="max-[380px]:hidden">
-                    <Avatar name={b.name} size={20} />
-                  </span>
-                  {b.name}
-                  {unread[b.id] > 0 && (
-                    <span className="absolute top-1 right-1.5 size-2 rounded-full bg-white shadow-[0_0_6px_rgb(255_255_255/0.6)]" />
-                  )}
-                </button>
-              ))}
-            </div>
+          {/* Mobile: indietro alla lista */}
+          <div className="flex items-center gap-2 py-2 pr-4 pl-1.5 md:hidden">
             <button
-              onClick={() => selectBot("notes")}
-              aria-label="Annunci"
-              title="Annunci"
-              className={`grid size-9 shrink-0 place-items-center rounded-full transition-colors ${
-                onNotes ? "gloss" : "text-muted hover:bg-surface-2 hover:text-fg"
-              }`}
+              onClick={back}
+              aria-label="Indietro"
+              className="flex h-9 shrink-0 items-center gap-0.5 rounded-full pr-2 pl-1 text-muted transition-colors hover:bg-surface-2 hover:text-fg"
             >
-              <PinIcon className="size-4.5" />
+              <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                <path d="m15 18-6-6 6-6" />
+              </svg>
+              {totalUnread > 0 && <Badge count={totalUnread} />}
             </button>
-            <LogoutButton />
+            {title}
           </div>
-          <div className="hidden items-center gap-3 px-6 py-3.5 md:flex">
-            {onNotes ? (
-              <>
-                <Avatar name="Annunci" size={36}>
-                  <PinIcon />
-                </Avatar>
-                <div>
-                  <div className="font-medium leading-tight">Annunci</div>
-                  <div className="text-xs text-muted">per ogni nota scegli quali bot possono leggerla</div>
-                </div>
-              </>
-            ) : (
-              <>
-                <Avatar name={bot.name} size={36} />
-                <div>
-                  <div className="font-medium leading-tight">{bot.name}</div>
-                  <div className="text-xs text-muted">{status}</div>
-                </div>
-              </>
-            )}
-          </div>
+          <div className="hidden items-center gap-3 px-6 py-3.5 md:flex">{title}</div>
         </header>
 
         {onNotes ? (
