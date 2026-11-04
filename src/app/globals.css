@@ -136,6 +136,11 @@ body::before {
   }
 }
 
+/* Spazio per il badge "Powered by Netlify" (vedi layout.tsx). Fuori dai layer così vince sulle utility. */
+html[data-nf-badge] .composer-dock {
+  padding-bottom: calc(4rem + env(safe-area-inset-bottom));
+}
+
 @keyframes pop {
   from {
     opacity: 0;

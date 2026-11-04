@@ -574,7 +574,7 @@ function Composer({ name, onSend }: { name: string; onSend: (text: string) => vo
   };
 
   return (
-    <div className="px-3 pt-2 pb-[max(0.75rem,env(safe-area-inset-bottom))] md:px-6 md:pb-5">
+    <div className="composer-dock px-3 pt-2 pb-[max(0.75rem,env(safe-area-inset-bottom))] md:px-6 md:pb-5">
       <form
         onSubmit={(e) => {
           e.preventDefault();

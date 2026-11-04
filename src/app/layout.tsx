@@ -21,7 +21,16 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="it" className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+    <html lang="it" className={`${geistSans.variable} ${geistMono.variable} antialiased`} suppressHydrationWarning>
+      <head>
+        {/* Su *.netlify.app Netlify aggiunge il badge "Powered by Netlify" in basso a destra:
+            lo segnamo prima del primo paint così la barra di scrittura gli lascia spazio. */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `if(/\\.netlify\\.app$/.test(location.hostname))document.documentElement.dataset.nfBadge=""`,
+          }}
+        />
+      </head>
       <body>{children}</body>
     </html>
   );
