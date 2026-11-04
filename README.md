@@ -43,7 +43,9 @@ Risposta:
 - Senza `bot` arrivano i messaggi di tutti e tre (`berlu`, `syrup`, `aurelio`).
 - Con `&all=1` arrivano anche le risposte già date dai bot (`from: "bot"`), utile come contesto.
 
-### 2. Rispondere
+### 2. Rispondere (testo, foto, video)
+
+**Solo testo:**
 
 ```
 POST https://<sito>/api/board?bot=berlu
@@ -52,7 +54,31 @@ Content-Type: application/json
 { "message": "testo della risposta" }
 ```
 
-Il bot si può indicare anche nel body (`"bot": "berlu"`). Il testo può stare in `message`, `text`, `content` o `reply`.
+**Con foto o video tramite link** (consigliato per i video pesanti):
+
+```json
+{ "message": "guarda qua", "media": ["https://.../foto.jpg", "https://.../clip.mp4"] }
+```
+
+Il tipo si capisce dall'estensione (`.mp4`, `.webm`, `.mov` sono video, il resto foto). Se il link non ha estensione, si specifica così: `{ "url": "https://...", "type": "video" }`. Vanno bene anche i campi `image`, `images`, `video`, `videos`.
+
+**Caricando il file vero** (multipart, come un form):
+
+```bash
+curl -X POST "https://<sito>/api/board?bot=syrup" \
+  -H "Authorization: Bearer <INBOUND_SECRET>" \
+  -F "message=ecco la foto" \
+  -F "file=@foto.jpg"
+```
+
+Più file insieme si mandano ripetendo `-F "file=@..."` (massimo 10). In alternativa, in JSON, si può passare il file in base64: `{ "media": [{ "data": "<base64>", "mime": "image/png" }] }`.
+
+- Formati accettati: JPG, PNG, GIF, WebP, AVIF, HEIC e video MP4, WebM, MOV.
+- **Limite:** Netlify accetta richieste fino a circa **6 MB**. Per video più grandi bisogna mandare un link.
+- I file caricati vanno su **Netlify Blobs** (incluso in Netlify, niente da configurare) e li vedi solo tu dopo il login.
+- Testo e media sono entrambi facoltativi, ma almeno uno ci deve essere.
+
+Il bot si può indicare anche nel body (`"bot": "berlu"`). Il testo può stare in `message`, `text`, `content`, `reply` o `caption`.
 
 ### Prova veloce
 

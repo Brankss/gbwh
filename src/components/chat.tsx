@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { logout } from "@/app/actions";
-import { BOTS, MAX_TEXT, isBotId, type BotId, type Inbox, type Message, type ReadAt } from "@/lib/bots";
+import { BOTS, MAX_TEXT, isBotId, type BotId, type Inbox, type Media, type Message, type ReadAt } from "@/lib/bots";
 
 type LocalMessage = Message & { pending?: boolean; local?: boolean; failed?: boolean };
 
@@ -53,6 +53,7 @@ export function Chat() {
   const [pending, setPending] = useState<LocalMessage[]>([]);
   const [loadedAt, setLoadedAt] = useState(0);
   const [read, setRead] = useState<ReadAt>({});
+  const [viewer, setViewer] = useState<string | null>(null);
   const rev = useRef(-1);
 
   const storedActive = useStored("chat:active");
@@ -196,7 +197,7 @@ export function Chat() {
                   </div>
                   <div className="flex items-center justify-between gap-2">
                     <p className="truncate text-sm text-muted">
-                      {lastMsg ? `${lastMsg.from === "me" ? "Tu: " : ""}${lastMsg.text}` : "Nessun messaggio"}
+                      {lastMsg ? `${lastMsg.from === "me" ? "Tu: " : ""}${preview(lastMsg)}` : "Nessun messaggio"}
                     </p>
                     {unread[b.id] > 0 && <Badge count={unread[b.id]} />}
                   </div>
@@ -249,10 +250,13 @@ export function Chat() {
           lastMineRead={!!lastMine && readAt >= lastMine.ts}
           typingSince={agentRead ? readAt : 0}
           onRetry={retry}
+          onOpenImage={setViewer}
         />
 
         <Composer key={`c-${active}`} name={bot.name} onSend={(t) => send(active, t)} />
       </main>
+
+      {viewer && <Lightbox src={viewer} onClose={() => setViewer(null)} />}
     </div>
   );
 }
@@ -268,6 +272,7 @@ const MessageList = memo(function MessageList({
   lastMineRead,
   typingSince,
   onRetry,
+  onOpenImage,
 }: {
   messages: LocalMessage[];
   botName: string;
@@ -277,6 +282,7 @@ const MessageList = memo(function MessageList({
   lastMineRead: boolean;
   typingSince: number;
   onRetry: (m: LocalMessage) => void;
+  onOpenImage: (src: string) => void;
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const first = useRef(true);
@@ -292,6 +298,19 @@ const MessageList = memo(function MessageList({
     }
     first.current = false;
   }, [messages, loading, typingSince]);
+
+  // Foto e video cambiano altezza quando caricano: se eri in fondo, ci resti.
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const onMediaLoad = () => stick.current && el.scrollTo({ top: el.scrollHeight });
+    el.addEventListener("load", onMediaLoad, true);
+    el.addEventListener("loadedmetadata", onMediaLoad, true);
+    return () => {
+      el.removeEventListener("load", onMediaLoad, true);
+      el.removeEventListener("loadedmetadata", onMediaLoad, true);
+    };
+  }, []);
 
   const onScroll = () => {
     const el = ref.current!;
@@ -325,6 +344,7 @@ const MessageList = memo(function MessageList({
                   showTime={!groupedWithNext || m.id === lastMineId}
                   receipt={m.id === lastMineId ? (lastMineRead ? "Letto" : "Inviato") : undefined}
                   onRetry={onRetry}
+                  onOpenImage={onOpenImage}
                 />
               </div>
             );
@@ -343,6 +363,7 @@ function Bubble({
   showTime,
   receipt,
   onRetry,
+  onOpenImage,
 }: {
   message: LocalMessage;
   animate: boolean;
@@ -350,17 +371,23 @@ function Bubble({
   showTime: boolean;
   receipt?: "Inviato" | "Letto";
   onRetry: (m: LocalMessage) => void;
+  onOpenImage: (src: string) => void;
 }) {
   const mine = m.from === "me";
   return (
     <div className={`flex flex-col ${mine ? "items-end" : "items-start"} ${tight ? "mt-0.5" : "mt-3"} ${animate ? "animate-pop" : ""}`}>
-      <div
-        className={`max-w-[85%] whitespace-pre-wrap break-words px-3.5 py-2 text-[15px] leading-relaxed md:max-w-[70%] ${
-          mine ? "gloss rounded-[1.25rem] rounded-br-md" : "matte rounded-[1.25rem] rounded-bl-md"
-        } ${m.pending ? "opacity-60" : ""} ${m.failed ? "opacity-70 ring-1 ring-red-500/60" : ""} transition-opacity`}
-      >
-        {m.text}
-      </div>
+      {m.media?.map((item, i) => (
+        <MediaItem key={i} media={item} mine={mine} onOpenImage={onOpenImage} />
+      ))}
+      {m.text && (
+        <div
+          className={`max-w-[85%] whitespace-pre-wrap break-words px-3.5 py-2 text-[15px] leading-relaxed md:max-w-[70%] ${
+            mine ? "gloss rounded-[1.25rem] rounded-br-md" : "matte rounded-[1.25rem] rounded-bl-md"
+          } ${m.media?.length ? "mt-1" : ""} ${m.pending ? "opacity-60" : ""} ${m.failed ? "opacity-70 ring-1 ring-red-500/60" : ""} transition-opacity`}
+        >
+          {m.text}
+        </div>
+      )}
       {m.failed ? (
         <button onClick={() => onRetry(m)} className="mt-1 text-xs text-red-500 hover:underline">
           Non consegnato · Riprova
@@ -373,6 +400,78 @@ function Bubble({
           </span>
         )
       )}
+    </div>
+  );
+}
+
+function MediaItem({ media, mine, onOpenImage }: { media: Media; mine: boolean; onOpenImage: (src: string) => void }) {
+  const [broken, setBroken] = useState(false);
+  const frame = `matte mt-1 overflow-hidden rounded-[1.25rem] ${mine ? "rounded-br-md" : "rounded-bl-md"}`;
+
+  if (broken) {
+    return (
+      <a href={media.url} target="_blank" rel="noreferrer" className={`${frame} px-3.5 py-2 text-sm text-muted underline`}>
+        {media.type === "video" ? "🎬 Video non disponibile" : "📷 Foto non disponibile"} · apri link
+      </a>
+    );
+  }
+
+  if (media.type === "video") {
+    return (
+      <div className={`${frame} max-w-[min(85%,22rem)]`}>
+        <video
+          src={media.url}
+          controls
+          playsInline
+          preload="metadata"
+          onError={() => setBroken(true)}
+          className="block max-h-[60dvh] w-auto max-w-full bg-black"
+        />
+      </div>
+    );
+  }
+
+  return (
+    <button type="button" onClick={() => onOpenImage(media.url)} className={`${frame} block max-w-[min(85%,22rem)] cursor-zoom-in`}>
+      {/* eslint-disable-next-line @next/next/no-img-element -- link esterni arbitrari, next/image non serve qui */}
+      <img
+        src={media.url}
+        alt=""
+        loading="lazy"
+        decoding="async"
+        referrerPolicy="no-referrer"
+        onError={() => setBroken(true)}
+        className="block max-h-[60dvh] min-h-24 w-auto min-w-24 object-cover transition-opacity hover:opacity-90"
+      />
+    </button>
+  );
+}
+
+function Lightbox({ src, onClose }: { src: string; onClose: () => void }) {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
+  return (
+    <div
+      role="dialog"
+      aria-modal
+      onClick={onClose}
+      className="fixed inset-0 z-40 grid cursor-zoom-out place-items-center bg-black/90 p-4 backdrop-blur-md animate-pop"
+    >
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={src} alt="" referrerPolicy="no-referrer" className="max-h-[92dvh] max-w-full rounded-2xl object-contain" />
+      <a
+        href={src}
+        target="_blank"
+        rel="noreferrer"
+        onClick={(e) => e.stopPropagation()}
+        className="gloss absolute top-4 right-4 rounded-full px-3.5 py-1.5 text-sm"
+      >
+        Apri originale
+      </a>
     </div>
   );
 }
@@ -525,6 +624,15 @@ const dateFmt = new Intl.DateTimeFormat("it-IT", { day: "numeric", month: "short
 const longDateFmt = new Intl.DateTimeFormat("it-IT", { weekday: "long", day: "numeric", month: "long" });
 
 const formatTime = (ts: number) => timeFmt.format(ts);
+
+function preview(m: Message) {
+  if (m.text) return m.text;
+  const videos = m.media?.filter((x) => x.type === "video").length ?? 0;
+  const photos = (m.media?.length ?? 0) - videos;
+  if (videos && !photos) return videos > 1 ? `🎬 ${videos} video` : "🎬 Video";
+  if (photos && !videos) return photos > 1 ? `📷 ${photos} foto` : "📷 Foto";
+  return "📎 Allegati";
+}
 
 function formatShort(ts: number) {
   return sameDay(ts, Date.now()) ? timeFmt.format(ts) : dateFmt.format(ts);

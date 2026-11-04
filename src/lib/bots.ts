@@ -13,11 +13,14 @@ export function isBotId(value: unknown): value is BotId {
   return typeof value === "string" && (BOT_IDS as string[]).includes(value);
 }
 
+export type Media = { url: string; type: "image" | "video" };
+
 export type Message = {
   id: string;
   bot: BotId;
   from: "me" | "bot";
   text: string;
+  media?: Media[];
   ts: number;
 };
 
