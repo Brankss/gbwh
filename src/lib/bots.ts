@@ -19,9 +19,11 @@ export type Message = {
   from: "me" | "bot";
   text: string;
   ts: number;
-  failed?: boolean;
 };
 
 export type Inbox = Record<BotId, Message[]>;
+
+/** Per ogni bot: quando l'agent ha letto la bacheca l'ultima volta (timestamp ms). */
+export type ReadAt = Partial<Record<BotId, number>>;
 
 export const MAX_TEXT = 4000;

@@ -3,9 +3,9 @@
 import { useRouter } from "next/navigation";
 import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { logout } from "@/app/actions";
-import { BOTS, MAX_TEXT, isBotId, type BotId, type Inbox, type Message } from "@/lib/bots";
+import { BOTS, MAX_TEXT, isBotId, type BotId, type Inbox, type Message, type ReadAt } from "@/lib/bots";
 
-type LocalMessage = Message & { pending?: boolean; local?: boolean };
+type LocalMessage = Message & { pending?: boolean; local?: boolean; failed?: boolean };
 
 const POLL_MS = 2000;
 const WAIT_REPLY_MS = 90_000;
@@ -52,6 +52,7 @@ export function Chat() {
   const [inbox, setInbox] = useState<Inbox | null>(null);
   const [pending, setPending] = useState<LocalMessage[]>([]);
   const [loadedAt, setLoadedAt] = useState(0);
+  const [read, setRead] = useState<ReadAt>({});
   const rev = useRef(-1);
 
   const storedActive = useStored("chat:active");
@@ -66,11 +67,12 @@ export function Chat() {
       const res = await fetch(`/api/messages?rev=${rev.current}`, { cache: "no-store" });
       if (res.status === 401) return toLogin();
       if (!res.ok) return;
-      const data: { rev: number; inbox?: Inbox } = await res.json();
+      const data: { rev: number; inbox?: Inbox; read?: ReadAt } = await res.json();
       rev.current = data.rev;
       if (data.inbox) {
         setLoadedAt((t) => t || Date.now());
         setInbox(data.inbox);
+        setRead(data.read ?? {});
       }
     } catch {
       // Rete ballerina: riproviamo al prossimo giro.
@@ -159,7 +161,12 @@ export function Chat() {
 
   const bot = botById(active);
   const last = messages.at(-1);
-  const waiting = !!last && last.from === "me" && !last.failed && !last.pending;
+  // L'agent passa ogni tanto: "letto" = ha scaricato la bacheca dopo il tuo ultimo messaggio.
+  const readAt = read[active] ?? 0;
+  const lastMine = messages.findLast((m) => m.from === "me" && !m.pending && !m.failed);
+  const awaitingReply = !!last && last === lastMine;
+  const agentRead = awaitingReply && readAt >= last.ts;
+  const status = agentRead ? "ha letto, sta rispondendo…" : awaitingReply ? "in attesa che passi a leggere" : "agent";
 
   return (
     <div className="flex h-dvh overflow-hidden">
@@ -227,7 +234,7 @@ export function Chat() {
             <Avatar name={bot.name} size={36} />
             <div>
               <div className="font-medium leading-tight">{bot.name}</div>
-              <div className="text-xs text-muted">{waiting ? "sta rispondendo…" : "bot"}</div>
+              <div className="text-xs text-muted">{status}</div>
             </div>
           </div>
         </header>
@@ -238,7 +245,9 @@ export function Chat() {
           botName={bot.name}
           loading={!inbox}
           animateAfter={loadedAt}
-          waitingSince={waiting ? last!.ts : 0}
+          lastMineId={lastMine?.id}
+          lastMineRead={!!lastMine && readAt >= lastMine.ts}
+          typingSince={agentRead ? readAt : 0}
           onRetry={retry}
         />
 
@@ -255,14 +264,18 @@ const MessageList = memo(function MessageList({
   botName,
   loading,
   animateAfter,
-  waitingSince,
+  lastMineId,
+  lastMineRead,
+  typingSince,
   onRetry,
 }: {
   messages: LocalMessage[];
   botName: string;
   loading: boolean;
   animateAfter: number;
-  waitingSince: number;
+  lastMineId?: string;
+  lastMineRead: boolean;
+  typingSince: number;
   onRetry: (m: LocalMessage) => void;
 }) {
   const ref = useRef<HTMLDivElement>(null);
@@ -278,7 +291,7 @@ const MessageList = memo(function MessageList({
       el.scrollTo({ top: el.scrollHeight, behavior: first.current ? "instant" : "smooth" });
     }
     first.current = false;
-  }, [messages, loading, waitingSince]);
+  }, [messages, loading, typingSince]);
 
   const onScroll = () => {
     const el = ref.current!;
@@ -309,14 +322,15 @@ const MessageList = memo(function MessageList({
                   message={m}
                   animate={m.ts > animateAfter}
                   tight={groupedWithPrev}
-                  showTime={!groupedWithNext}
+                  showTime={!groupedWithNext || m.id === lastMineId}
+                  receipt={m.id === lastMineId ? (lastMineRead ? "Letto" : "Inviato") : undefined}
                   onRetry={onRetry}
                 />
               </div>
             );
           })
         )}
-        {waitingSince > 0 && <Typing key={waitingSince} since={waitingSince} />}
+        {typingSince > 0 && <Typing key={typingSince} since={typingSince} />}
       </div>
     </div>
   );
@@ -327,12 +341,14 @@ function Bubble({
   animate,
   tight,
   showTime,
+  receipt,
   onRetry,
 }: {
   message: LocalMessage;
   animate: boolean;
   tight: boolean;
   showTime: boolean;
+  receipt?: "Inviato" | "Letto";
   onRetry: (m: LocalMessage) => void;
 }) {
   const mine = m.from === "me";
@@ -350,7 +366,12 @@ function Bubble({
           Non consegnato · Riprova
         </button>
       ) : (
-        showTime && <span className="mt-1 px-1 text-[11px] text-muted">{m.pending ? "Invio…" : formatTime(m.ts)}</span>
+        showTime && (
+          <span className="mt-1 px-1 text-[11px] text-muted">
+            {m.pending ? "Invio…" : formatTime(m.ts)}
+            {receipt && <span className={receipt === "Letto" ? "text-fg" : ""}> · {receipt === "Letto" ? "Letto ✓✓" : "Inviato ✓"}</span>}
+          </span>
+        )
       )}
     </div>
   );
