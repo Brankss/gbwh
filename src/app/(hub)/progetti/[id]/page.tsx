@@ -22,7 +22,7 @@ const KIND_LABEL: Record<LearningKind, string> = {
 export default function ProjectPageShell() {
   // L'id del progetto arriva dall'URL solo a runtime: la pagina vera sta dentro <Suspense>.
   return (
-    <Suspense fallback={<div className="m-6 h-40 animate-pulse rounded-[1.25rem] bg-surface-2" />}>
+    <Suspense fallback={<div className="m-6 h-40 skeleton rounded-[1.25rem]" />}>
       <ProjectPage />
     </Suspense>
   );
@@ -37,7 +37,7 @@ function ProjectPage() {
   const [kind, setKind] = useState<"tutte" | LearningKind>("tutte");
 
   const back = (
-    <Link href="/progetti" aria-label="Progetti" className="grid size-9 shrink-0 place-items-center rounded-full text-muted hover:bg-surface-2 hover:text-fg">
+    <Link href="/progetti" aria-label="Progetti" className="grid size-9 shrink-0 place-items-center press rounded-full text-[#b4b4b4] hover:bg-white/[0.07] hover:text-fg">
       <Icon name="back" />
     </Link>
   );
@@ -57,7 +57,7 @@ function ProjectPage() {
       <>
         <PageHeader title="…" back={back} />
         <PageBody>
-          <div className="h-40 animate-pulse rounded-[1.25rem] bg-surface-2" />
+          <div className="h-40 skeleton rounded-[1.25rem]" />
         </PageBody>
       </>
     );
@@ -268,7 +268,7 @@ function NewCheckpoint({ projectId, lastProgress }: { projectId: string; lastPro
           Aggiungi
         </Button>
       </div>
-      {error && <p className="text-sm text-red-400">{error}</p>}
+      {error && <p className="text-sm text-[#ec8585]">{error}</p>}
       <div className="flex justify-end gap-2">
         <Button variant="ghost" onClick={() => setOpen(false)}>
           Annulla

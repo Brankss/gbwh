@@ -19,7 +19,7 @@ export function WakeLine({ botId }: { botId: string }) {
   if (!data?.configured || !log) return null;
   if (log.result === "failed") {
     return (
-      <div className="truncate text-[11px] text-red-400" title={log.error}>
+      <div className="truncate text-[11px] text-[#ec8585]" title={log.error}>
         ⚡ sveglia non riuscita · {log.error}
       </div>
     );
@@ -50,7 +50,7 @@ export function WakeButton({ botId, name }: { botId: string; name: string }) {
       disabled={state === "busy"}
       title={`Sveglia ${name} adesso via email`}
       aria-label={`Sveglia ${name}`}
-      className="ml-auto flex h-8 shrink-0 items-center gap-1.5 rounded-full border border-white/10 px-3 text-xs font-medium text-muted transition-colors hover:border-white/20 hover:text-fg disabled:opacity-50"
+      className="press ml-auto flex h-8 shrink-0 items-center gap-1.5 rounded-full border border-white/10 px-3 text-xs font-medium text-[#b4b4b4] hover:border-white/25 hover:bg-white/[0.05] hover:text-fg disabled:opacity-50"
     >
       <span aria-hidden>⚡</span>
       {state === "busy" ? "Sveglio…" : state === "ok" ? "Inviata" : state === "err" ? "Errore" : "Sveglia"}
@@ -71,7 +71,7 @@ export function WakeSettings() {
   };
 
   return (
-    <div className="mx-3 mt-4 mb-2 space-y-1.5 rounded-2xl [html[data-nf-badge]_&]:mb-16 border border-white/[0.06] px-3 py-2.5 text-xs text-muted">
+    <div className="mx-3 mt-4 mb-2 space-y-1.5 matte rounded-2xl [html[data-nf-badge]_&]:mb-16 px-3 py-2.5 text-xs text-muted">
       <div className="flex items-center gap-2">
         <span aria-hidden>⚡</span>
         <span className="flex-1">
@@ -86,7 +86,7 @@ export function WakeSettings() {
       {data.configured && data.address && <div className="truncate font-mono text-[10px]">{data.address}</div>}
       {!data.configured && <div>Aggiungi su Netlify WAKE_EMAIL e le variabili SMTP (vedi README).</div>}
       {test && test !== "busy" && (
-        <div className={test.ok ? "text-fg" : "text-red-400"}>{test.ok ? "✓ Server di posta raggiungibile e credenziali ok." : `✕ ${test.error}`}</div>
+        <div className={test.ok ? "text-fg" : "text-[#ec8585]"}>{test.ok ? "✓ Server di posta raggiungibile e credenziali ok." : `✕ ${test.error}`}</div>
       )}
     </div>
   );

@@ -40,7 +40,7 @@ export default function ProjectsPage() {
         {!data ? (
           <div className="grid gap-3 sm:grid-cols-2">
             {[0, 1].map((i) => (
-              <div key={i} className="h-36 animate-pulse rounded-[1.25rem] bg-surface-2" />
+              <div key={i} className="h-36 skeleton rounded-[1.25rem]" />
             ))}
           </div>
         ) : shown.length === 0 ? (
@@ -48,9 +48,9 @@ export default function ProjectsPage() {
             {!items.length && "Crea il primo: poi tu e gli agent ci lasciate i checkpoint."}
           </Empty>
         ) : (
-          <div className="grid gap-3 sm:grid-cols-2">
+          <div className="stagger grid gap-3 sm:grid-cols-2">
             {shown.map((p) => (
-              <Link key={p.id} href={`/progetti/${p.id}`} className="matte block space-y-3 rounded-[1.25rem] p-4 transition-colors hover:border-[#2a2a2a] hover:bg-[#171717]">
+              <Link key={p.id} href={`/progetti/${p.id}`} className="matte block space-y-3 rounded-[1.25rem] p-4 lift">
                 <div className="flex items-start gap-3">
                   <span className="orb grid size-10 shrink-0 place-items-center rounded-full text-lg">{p.emoji || p.name[0]}</span>
                   <div className="min-w-0 flex-1">

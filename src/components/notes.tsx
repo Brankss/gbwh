@@ -41,12 +41,12 @@ export function Notes({ notes, bots, onChanged }: { notes: Note[] | null; bots: 
     <div className="scroll-thin flex-1 overflow-y-auto overscroll-contain">
       <div className="mx-auto max-w-3xl space-y-5 px-4 py-6 pb-28 md:px-6">
         <NewNote api={api} />
-        {error && <p className="text-sm text-red-500">{error}</p>}
+        {error && <p className="text-sm text-[#ec8585]">{error}</p>}
 
         {notes === null ? (
           <div className="grid gap-3 sm:grid-cols-2">
             {[0, 1].map((i) => (
-              <div key={i} className="h-28 animate-pulse rounded-[1.25rem] bg-surface-2" />
+              <div key={i} className="h-28 skeleton rounded-[1.25rem]" />
             ))}
           </div>
         ) : notes.length === 0 ? (
@@ -186,7 +186,7 @@ function NoteCard({ note, api }: { note: Note; api: Api }) {
               </button>
               <button
                 onClick={() => confirm("Eliminare questa nota?") && api("DELETE", undefined, `?id=${note.id}`)}
-                className="hover:text-red-400"
+                className="hover:text-[#ec8585]"
               >
                 Elimina
               </button>

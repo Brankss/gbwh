@@ -27,6 +27,7 @@ export default function DropshippingPage() {
   return (
     <>
       <PageHeader
+        wide
         title="Dropshipping"
         subtitle="Prodotti e pubblicità, collegati"
         actions={
@@ -69,7 +70,7 @@ export default function DropshippingPage() {
 
 function ProductList({ products, ads, loading, onOpen }: { products: Product[]; ads: Ad[]; loading: boolean; onOpen: (p: Product) => void }) {
   const [status, setStatus] = useState<"tutti" | Product["status"]>("tutti");
-  if (loading) return <div className="h-40 animate-pulse rounded-[1.25rem] bg-surface-2" />;
+  if (loading) return <div className="h-40 skeleton rounded-[1.25rem]" />;
   if (!products.length) return <Empty icon="cart" title="Nessun prodotto">Aggiungi i prodotti che stai valutando o testando.</Empty>;
   const shown = status === "tutti" ? products : products.filter((p) => p.status === status);
 
@@ -80,7 +81,7 @@ function ProductList({ products, ads, loading, onOpen }: { products: Product[]; 
         onChange={setStatus}
         options={[{ value: "tutti" as const, label: "Tutti" }, ...PRODUCT_STATUS.map((s) => ({ value: s, label: s, count: products.filter((p) => p.status === s).length }))]}
       />
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="stagger grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {shown.map((p) => {
           const own = ads.filter((a) => a.productId === p.id);
           const s = own.reduce((n, a) => n + (a.spend ?? 0), 0);
@@ -114,7 +115,7 @@ function ProductList({ products, ads, loading, onOpen }: { products: Product[]; 
 
 function AdList({ ads, products, loading, onOpen }: { ads: Ad[]; products: Product[]; loading: boolean; onOpen: (a: Ad) => void }) {
   const [status, setStatus] = useState<"tutte" | Ad["status"]>("tutte");
-  if (loading) return <div className="h-40 animate-pulse rounded-[1.25rem] bg-surface-2" />;
+  if (loading) return <div className="h-40 skeleton rounded-[1.25rem]" />;
   if (!ads.length) return <Empty icon="spark" title="Nessuna pubblicità">Crea una pubblicità e collegala a un prodotto e ai video dei bot.</Empty>;
   const shown = status === "tutte" ? ads : ads.filter((a) => a.status === status);
 
@@ -125,7 +126,7 @@ function AdList({ ads, products, loading, onOpen }: { ads: Ad[]; products: Produ
         onChange={setStatus}
         options={[{ value: "tutte" as const, label: "Tutte" }, ...AD_STATUS.map((s) => ({ value: s, label: s, count: ads.filter((a) => a.status === s).length }))]}
       />
-      <div className="space-y-2">
+      <div className="stagger space-y-2">
         {shown.map((a) => {
           const product = products.find((p) => p.id === a.productId);
           return (
@@ -284,7 +285,7 @@ function ProductEditor({ product, ads, onClose }: { product?: Product; ads: Ad[]
           ))}
         </div>
       )}
-      {error && <p className="text-sm text-red-400">{error}</p>}
+      {error && <p className="text-sm text-[#ec8585]">{error}</p>}
     </Modal>
   );
 }
@@ -392,7 +393,7 @@ function AdEditor({ ad, products, onClose }: { ad?: Ad; products: Product[]; onC
       <Field label="Note">
         <textarea className={`${inputClass} min-h-20 resize-y`} value={f.notes} onChange={set("notes")} />
       </Field>
-      {error && <p className="text-sm text-red-400">{error}</p>}
+      {error && <p className="text-sm text-[#ec8585]">{error}</p>}
     </Modal>
   );
 }

@@ -47,19 +47,19 @@ export function Thumb({ item, selected, onClick }: { item: MediaRef & { sourceNa
     <Tag
       type={onClick ? "button" : undefined}
       onClick={onClick}
-      className={`group relative block aspect-square w-full overflow-hidden rounded-2xl bg-surface-2 transition-all ${selected ? "ring-2 ring-white" : onClick ? "hover:opacity-90" : ""}`}
+      className={`group relative block aspect-square w-full overflow-hidden rounded-2xl bg-surface-2 shadow-[inset_0_0_0_1px_rgb(255_255_255/0.08)] transition-all ${selected ? "ring-2 ring-white" : onClick ? "press hover:shadow-[0_14px_30px_-18px_rgb(255_255_255/0.25)]" : ""}`}
     >
       {item.type === "video" ? (
-        <video src={`${item.url}#t=0.1`} muted playsInline preload="metadata" className="size-full object-cover" />
+        <video src={`${item.url}#t=0.1`} muted playsInline preload="metadata" className="size-full object-cover transition-transform duration-500 ease-out group-hover:scale-[1.04]" />
       ) : (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={item.url} alt="" loading="lazy" decoding="async" referrerPolicy="no-referrer" className="size-full object-cover" />
+        <img src={item.url} alt="" loading="lazy" decoding="async" referrerPolicy="no-referrer" className="size-full object-cover transition-transform duration-500 ease-out group-hover:scale-[1.04]" />
       )}
       {item.type === "video" && (
-        <span className="absolute top-2 left-2 grid size-6 place-items-center rounded-full bg-black/60 text-[10px]">▶</span>
+        <span className="absolute top-2 left-2 grid size-6 place-items-center rounded-full bg-black/65 text-[10px] ring-1 ring-white/15">▶</span>
       )}
       {item.sourceName && (
-        <span className="absolute right-2 bottom-2 rounded-full bg-black/60 px-2 py-0.5 text-[10px] backdrop-blur">{item.sourceName}</span>
+        <span className="absolute right-2 bottom-2 rounded-full bg-black/70 px-2 py-0.5 text-[10px] font-medium ring-1 ring-white/10">{item.sourceName}</span>
       )}
       {selected && (
         <span className="absolute top-2 right-2 grid size-6 place-items-center rounded-full bg-white text-black">
@@ -101,7 +101,7 @@ export function MediaPicker({ value, onChange, onClose }: { value: MediaRef[]; o
     >
       {controls}
       {!data ? (
-        <div className="h-40 animate-pulse rounded-2xl bg-surface-2" />
+        <div className="h-40 skeleton rounded-2xl" />
       ) : shown.length === 0 ? (
         <Empty icon="image" title="Nessun media">
           Quando un bot manda foto o video, li trovi qui.
@@ -143,7 +143,7 @@ export function UploadButton({ onDone }: { onDone: () => void }) {
       <Button icon="upload" onClick={() => input.current?.click()} disabled={busy}>
         {busy ? "Carico…" : "Carica"}
       </Button>
-      {error && <span className="text-xs text-red-400">{error}</span>}
+      {error && <span className="text-xs text-[#ec8585]">{error}</span>}
     </>
   );
 }

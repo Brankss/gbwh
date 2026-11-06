@@ -14,13 +14,13 @@ export default function MediaPage() {
 
   return (
     <>
-      <PageHeader title="Media" subtitle="Tutto quello che mandano i bot, più i tuoi file" actions={<UploadButton onDone={() => mutate()} />} />
+      <PageHeader wide title="Media" subtitle="Tutto quello che mandano i bot, più i tuoi file" actions={<UploadButton onDone={() => mutate()} />} />
       <PageBody wide>
         {controls}
         {!data ? (
           <div className="grid grid-cols-3 gap-2 md:grid-cols-5">
             {Array.from({ length: 10 }, (_, i) => (
-              <div key={i} className="aspect-square animate-pulse rounded-2xl bg-surface-2" />
+              <div key={i} className="aspect-square skeleton rounded-2xl" />
             ))}
           </div>
         ) : shown.length === 0 ? (
@@ -28,7 +28,7 @@ export default function MediaPage() {
             {!items.length && "Quando un bot risponde con foto o video, finiscono qui da soli."}
           </Empty>
         ) : (
-          <div className="grid grid-cols-3 gap-2 md:grid-cols-5">
+          <div className="stagger grid grid-cols-3 gap-2 md:grid-cols-5">
             {shown.map((m) => (
               <Thumb key={m.id} item={m} onClick={() => setOpen(m)} />
             ))}

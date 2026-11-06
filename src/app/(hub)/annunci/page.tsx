@@ -35,13 +35,13 @@ export default function AlertsPage() {
           ]}
         />
         {!data ? (
-          <div className="h-24 animate-pulse rounded-[1.25rem] bg-surface-2" />
+          <div className="h-24 skeleton rounded-[1.25rem]" />
         ) : shown.length === 0 ? (
           <Empty icon="bell" title={view === "da-leggere" ? "Tutto letto ✨" : "Niente qui"}>
             {view === "da-leggere" && "Quando un agent o una sezione dell'hub ha qualcosa di davvero importante, compare qui."}
           </Empty>
         ) : (
-          <div className="space-y-3">
+          <div className="stagger space-y-3">
             {shown.map((a) => (
               <AlertCard key={a.id} alert={a} />
             ))}
@@ -56,7 +56,12 @@ function AlertCard({ alert: a }: { alert: Alert }) {
   const patch = (body: object) => send("PATCH", `/api/c/alerts/${a.id}`, body, ["/api/c/alerts"]);
   const urgent = a.level === "urgente";
   return (
-    <article className={`matte space-y-2 rounded-[1.25rem] p-4 animate-pop ${a.readAt ? "opacity-70" : ""}`}>
+    <article
+      className={`matte relative space-y-2 overflow-hidden rounded-[1.25rem] p-4 ${a.readAt ? "opacity-70" : ""} ${
+        urgent ? "shadow-[inset_0_0_0_1px_rgb(230_103_103/0.28),0_14px_40px_-24px_rgb(230_103_103/0.35)]" : ""
+      }`}
+    >
+      {urgent && <span aria-hidden className="absolute inset-y-3 left-0 w-[3px] rounded-r-full bg-[#e66767]" />}
       <div className="flex items-start gap-3">
         <span
           className={`mt-0.5 grid size-8 shrink-0 place-items-center rounded-full ${urgent ? "bg-[#e66767]/15 text-[#e66767]" : "orb"}`}

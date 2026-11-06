@@ -73,10 +73,11 @@ export default function ComparePage() {
   return (
     <>
       <PageHeader
+        wide
         title="Confronta modelli"
         subtitle={`Scegli fino a ${MAX_PICKS} modelli`}
         back={
-          <Link href="/modelli" aria-label="Modelli" className="grid size-9 shrink-0 place-items-center rounded-full text-muted hover:bg-surface-2 hover:text-fg">
+          <Link href="/modelli" aria-label="Modelli" className="grid size-9 shrink-0 place-items-center press rounded-full text-[#b4b4b4] hover:bg-white/[0.07] hover:text-fg">
             <Icon name="back" />
           </Link>
         }
@@ -86,7 +87,7 @@ export default function ComparePage() {
         {res && <SourceBar data={data} configured={res.configured} onSynced={() => mutate()} />}
 
         {!res ? (
-          <div className="h-60 animate-pulse rounded-[1.25rem] bg-surface-2" />
+          <div className="h-60 skeleton rounded-[1.25rem]" />
         ) : !category?.models.length ? (
           <NoModelsData configured={res.configured} />
         ) : (

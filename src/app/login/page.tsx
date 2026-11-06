@@ -26,7 +26,7 @@ export default function LoginPage() {
           placeholder="Password"
           className="field w-full"
         />
-        {error && <p className="text-sm text-red-400">{error}</p>}
+        {error && <p className="text-sm text-[#ec8585]">{error}</p>}
         <button disabled={pending} className="chrome btn-primary w-full">
           {pending ? "Entro…" : "Entra"}
         </button>

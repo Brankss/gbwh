@@ -24,6 +24,7 @@ export default function ModelsPage() {
   return (
     <>
       <PageHeader
+        wide
         title="Modelli AI"
         subtitle="I migliori del momento, benchmark alla mano"
         actions={
@@ -44,7 +45,7 @@ export default function ModelsPage() {
         {res && <SourceBar data={data} configured={res.configured} onSynced={() => mutate()} />}
 
         {!res ? (
-          <div className="h-60 animate-pulse rounded-[1.25rem] bg-surface-2" />
+          <div className="h-60 skeleton rounded-[1.25rem]" />
         ) : !category?.models.length ? (
           <NoModelsData configured={res.configured} />
         ) : (
@@ -92,7 +93,7 @@ export default function ModelsPage() {
 
             {benchmarks.length > 1 && (
               <Section title="Tutti i benchmark">
-                <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                <div className="stagger grid gap-3 md:grid-cols-2 xl:grid-cols-3">
                   {benchmarks.map((b) => (
                     <button
                       key={b.key}
@@ -100,7 +101,7 @@ export default function ModelsPage() {
                         setBench(b.key);
                         document.getElementById("page-scroll")?.scrollTo({ top: 0, behavior: "smooth" });
                       }}
-                      className={`matte space-y-2.5 rounded-[1.25rem] p-4 text-left transition-colors hover:bg-[#171717] ${b.key === main?.key ? "ring-1 ring-white/40" : ""}`}
+                      className={`matte space-y-2.5 rounded-[1.25rem] p-4 text-left lift ${b.key === main?.key ? "ring-1 ring-white/40" : ""}`}
                     >
                       <div className="font-medium">{b.label}</div>
                       <RankingChart models={models} benchmark={b} limit={8} compact />

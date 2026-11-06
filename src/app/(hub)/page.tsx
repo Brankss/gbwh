@@ -19,7 +19,7 @@ function greeting(now: number) {
 }
 
 const more = (href: string, label = "Vedi tutto") => (
-  <Link href={href} className="text-xs text-muted hover:text-fg">
+  <Link href={href} className="rounded-full px-2 py-0.5 text-xs font-medium text-[#b4b4b4] transition-colors hover:bg-white/[0.06] hover:text-fg">
     {label} →
   </Link>
 );
@@ -54,20 +54,20 @@ export default function NowPage() {
 
   return (
     <>
-      <PageHeader title={greeting(now)} subtitle={today || undefined} />
+      <PageHeader wide title={greeting(now)} subtitle={today || undefined} />
       <PageBody wide>
         {/* Annunci: in cima, perché è l'unica cosa che va letta */}
         <Section title="Annunci" action={more("/annunci")}>
           {!alerts.data ? (
-            <div className="h-16 animate-pulse rounded-[1.25rem] bg-surface-2" />
+            <div className="h-16 skeleton rounded-[1.25rem]" />
           ) : unread.length === 0 ? (
             <Card className="flex items-center gap-3 text-sm text-muted">
               <Icon name="check" className="size-4" /> Niente di importante da leggere. Tutto tranquillo.
             </Card>
           ) : (
-            <div className="space-y-2">
+            <div className="stagger space-y-2">
               {unread.slice(0, 3).map((a) => (
-                <Link key={a.id} href="/annunci" className="matte flex items-start gap-3 rounded-[1.25rem] p-4 hover:bg-[#171717]">
+                <Link key={a.id} href="/annunci" className="matte flex items-start gap-3 rounded-[1.25rem] p-4 lift">
                   <span className={`mt-0.5 grid size-7 shrink-0 place-items-center rounded-full ${a.level === "urgente" ? "bg-[#e66767]/15 text-[#e66767]" : "orb"}`}>
                     <Icon name={a.level === "urgente" ? "alert" : "bell"} className="size-3.5" />
                   </span>
@@ -91,13 +91,13 @@ export default function NowPage() {
         <div className="grid gap-6 lg:grid-cols-2">
           <Section title="Progetti attivi" action={more("/progetti")}>
             {!projects.data ? (
-              <div className="h-28 animate-pulse rounded-[1.25rem] bg-surface-2" />
+              <div className="h-28 skeleton rounded-[1.25rem]" />
             ) : active.length === 0 ? (
               <EmptyLine href="/progetti">Nessun progetto attivo. Creane uno →</EmptyLine>
             ) : (
-              <div className="space-y-2">
+              <div className="stagger space-y-2">
                 {active.slice(0, 4).map((p) => (
-                  <Link key={p.id} href={`/progetti/${p.id}`} className="matte block space-y-2 rounded-[1.25rem] p-4 hover:bg-[#171717]">
+                  <Link key={p.id} href={`/progetti/${p.id}`} className="matte block space-y-2 rounded-[1.25rem] p-4 lift">
                     <div className="flex items-center gap-2">
                       <span className="truncate font-medium">
                         {p.emoji ? `${p.emoji} ` : ""}
@@ -115,13 +115,13 @@ export default function NowPage() {
 
           <Section title="Dai bot" action={more("/agenti", "Apri chat")}>
             {!chat.data ? (
-              <div className="h-28 animate-pulse rounded-[1.25rem] bg-surface-2" />
+              <div className="h-28 skeleton rounded-[1.25rem]" />
             ) : lastFromBots.length === 0 ? (
               <EmptyLine href="/agenti">Ancora nessuna risposta dai bot.</EmptyLine>
             ) : (
-              <div className="matte divide-y divide-line rounded-[1.25rem]">
+              <div className="stagger matte divide-y divide-line rounded-[1.25rem]">
                 {lastFromBots.map((m) => (
-                  <Link key={m.id} href="/agenti" className="flex gap-3 px-4 py-3 hover:bg-[#171717]">
+                  <Link key={m.id} href="/agenti" className="flex gap-3 px-4 py-3 transition-colors hover:bg-white/[0.04]">
                     <span className="orb grid size-8 shrink-0 place-items-center rounded-full text-sm font-semibold">{botName(m.bot)[0]}</span>
                     <span className="min-w-0 flex-1">
                       <span className="flex justify-between text-xs text-muted">
@@ -148,11 +148,11 @@ export default function NowPage() {
 
         <Section title="Ultimi media" action={more("/media")}>
           {!media.data ? (
-            <div className="h-24 animate-pulse rounded-[1.25rem] bg-surface-2" />
+            <div className="h-24 skeleton rounded-[1.25rem]" />
           ) : media.data.items.length === 0 ? (
             <EmptyLine href="/media">Ancora nessun media dai bot.</EmptyLine>
           ) : (
-            <div className="grid grid-cols-3 gap-2 sm:grid-cols-6">
+            <div className="stagger grid grid-cols-3 gap-2 sm:grid-cols-6">
               {media.data.items.slice(0, 6).map((m) => (
                 <Link key={m.id} href="/media">
                   <Thumb item={m} />
@@ -164,7 +164,7 @@ export default function NowPage() {
 
         {podium.length > 0 && index && (
           <Section title={`Modelli AI · ${index.label}`} action={more("/modelli")}>
-            <div className="grid gap-2 sm:grid-cols-3">
+            <div className="stagger grid gap-2 sm:grid-cols-3">
               {podium.map((m, i) => (
                 <Card key={m.id} className="flex items-center gap-3">
                   <span className="orb grid size-8 shrink-0 place-items-center rounded-full text-sm font-semibold">{i + 1}</span>
