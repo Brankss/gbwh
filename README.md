@@ -114,6 +114,8 @@ Tutte con `Authorization: Bearer <INBOUND_SECRET>` (o `?token=`). **`GET /api/ag
 | `GET /api/agent/projects/<id>` | Progetto completo: checkpoint + conoscenze |
 | `POST /api/agent/projects/<id>/checkpoints` | `{author, summary, progress?, next?: [], learnings?: [{kind, text}]}`; kind: `errore`, `esperienza`, `ricerca`, `correzione` |
 | `POST /api/agent/alerts` | `{source, title, level: "importante" o "urgente", body?, link?, dedupeKey?}`; solo se serve davvero |
+| `POST /api/agent/heartbeat` | Segnale di vita: `{agent, name?, status?: attivo, occupato o in pausa, doing?, projectId?}`. Online se l'ultimo è di meno di 15 minuti fa: compare in "Chi è sveglio" su Adesso. |
+| `GET /api/agent/products` | Prodotti e pubblicità, per collegare i media (`product` / `ad` in `POST /api/board`) |
 | `POST /api/agent/models` | Carica una classifica: `{kind: "llm", "image" o "video", source, models: [{name, org, open?, scores: {benchmark: valore}}]}` |
 
 ## Modelli AI: da dove arrivano i dati

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { AgentsOnline } from "@/components/agents-online";
 import { Icon } from "@/components/icons";
 import { Card, PageBody, PageHeader, Progress, Section, Stat } from "@/components/kit";
 import { Thumb } from "@/components/media-grid";
@@ -81,6 +82,10 @@ export default function NowPage() {
               {unread.length > 3 && <p className="text-xs text-muted">e altri {unread.length - 3}</p>}
             </div>
           )}
+        </Section>
+
+        <Section title="Chi è sveglio">
+          <AgentsOnline />
         </Section>
 
         <div className="grid gap-6 lg:grid-cols-2">
