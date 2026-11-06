@@ -1,5 +1,5 @@
 import type { NextRequest } from "next/server";
-import { safeEqual } from "@/lib/auth";
+import { agentAuthError as authError } from "@/lib/agent-auth";
 import { MAX_TEXT, toBotId, toBotName, type BotId, type Media, type Message } from "@/lib/bots";
 import { MAX_UPLOAD, isAllowedMime, saveMedia } from "@/lib/media";
 import { addMessage, ensureBot, getSnapshot, markRead } from "@/lib/store";
@@ -29,13 +29,6 @@ import { addMessage, ensureBot, getSnapshot, markRead } from "@/lib/store";
 
 const noStore = { "Cache-Control": "no-store" };
 
-function authError(request: NextRequest): Response | null {
-  const secret = process.env.INBOUND_SECRET;
-  if (!secret) return Response.json({ error: "INBOUND_SECRET non configurato" }, { status: 503 });
-  const provided =
-    request.headers.get("authorization")?.replace(/^Bearer\s+/i, "") ?? request.nextUrl.searchParams.get("token") ?? "";
-  return safeEqual(provided, secret) ? null : Response.json({ error: "Non autorizzato" }, { status: 401 });
-}
 
 export async function GET(request: NextRequest) {
   const denied = authError(request);

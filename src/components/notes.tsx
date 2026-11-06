@@ -54,7 +54,7 @@ export function Notes({ notes, bots, onChanged }: { notes: Note[] | null; bots: 
             <Avatar name="Annunci" size={56}>
               <PinIcon className="size-6" />
             </Avatar>
-            <p>Nessun annuncio. Scrivine uno qui sopra 📌</p>
+            <p>Nessuna nota. Scrivine una qui sopra 📌</p>
           </div>
         ) : (
           <div className="columns-1 gap-3 sm:columns-2">
@@ -105,8 +105,8 @@ function NewNote({ api }: { api: Api }) {
             publish();
           }
         }}
-        placeholder="Scrivi un annuncio…"
-        aria-label="Nuovo annuncio"
+        placeholder="Scrivi una nota per i bot…"
+        aria-label="Nuova nota"
         className="scroll-thin block w-full resize-none bg-transparent text-[15px] leading-relaxed outline-none placeholder:text-muted"
       />
       <AudiencePicker value={visibleTo} onChange={setVisibleTo} />
@@ -152,7 +152,7 @@ function NoteCard({ note, api }: { note: Note; api: Api }) {
             value={draft}
             maxLength={MAX_TEXT}
             onChange={(e) => setDraft(e.target.value)}
-            aria-label="Modifica annuncio"
+            aria-label="Modifica nota"
             className="field block w-full resize-none text-[15px] leading-relaxed"
           />
           <AudiencePicker value={audience} onChange={setAudience} />
@@ -185,7 +185,7 @@ function NoteCard({ note, api }: { note: Note; api: Api }) {
                 Modifica
               </button>
               <button
-                onClick={() => confirm("Eliminare questo annuncio?") && api("DELETE", undefined, `?id=${note.id}`)}
+                onClick={() => confirm("Eliminare questa nota?") && api("DELETE", undefined, `?id=${note.id}`)}
                 className="hover:text-red-400"
               >
                 Elimina

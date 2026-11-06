@@ -1,5 +1,5 @@
 import "server-only";
-import { Redis } from "@upstash/redis";
+import { redis } from "./redis";
 import { DEFAULT_BOTS, MAX_BOTS, type Bot, type BotId, type Inbox, type Message, type Note, type ReadAt } from "./bots";
 
 // Ultimi N messaggi tenuti per ogni chat.
@@ -10,14 +10,6 @@ const NOTES_KEY = "chat:notes";
 const BOTS_KEY = "chat:bots";
 const listKey = (bot: BotId) => `chat:${bot}`;
 
-const url = process.env.KV_REST_API_URL ?? process.env.UPSTASH_REDIS_REST_URL;
-const token = process.env.KV_REST_API_TOKEN ?? process.env.UPSTASH_REDIS_REST_TOKEN;
-
-const redis = url && token ? new Redis({ url, token }) : null;
-
-if (!redis && process.env.NODE_ENV === "production") {
-  console.warn("[store] Redis non configurato: i messaggi stanno solo in memoria e si perdono al riavvio.");
-}
 
 // Fallback in memoria per lo sviluppo in locale (sopravvive all'hot reload).
 type Mem = { rev: number; lists: Inbox; read: ReadAt; notes: Record<string, Note>; bots: Record<string, Bot> };

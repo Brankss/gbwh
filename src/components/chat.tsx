@@ -2,9 +2,9 @@
 
 import { useRouter } from "next/navigation";
 import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
-import { logout } from "@/app/actions";
 import { DEFAULT_BOTS, MAX_TEXT, type Bot, type BotId, type Inbox, type Media, type Message, type Note, type ReadAt } from "@/lib/bots";
 import { Notes } from "./notes";
+import { MenuButton } from "./shell";
 import { Avatar, PinIcon, useAutosize } from "./ui";
 
 type LocalMessage = Message & { pending?: boolean; local?: boolean; failed?: boolean };
@@ -222,11 +222,11 @@ export function Chat() {
 
   const title = onNotes ? (
     <>
-      <Avatar name="Annunci" size={36}>
+      <Avatar name="Note" size={36}>
         <PinIcon />
       </Avatar>
       <div className="min-w-0">
-        <div className="font-medium leading-tight">Annunci</div>
+        <div className="font-medium leading-tight">Note per i bot</div>
         <div className="truncate text-xs text-muted">per ogni nota scegli quali bot possono leggerla</div>
       </div>
     </>
@@ -241,14 +241,14 @@ export function Chat() {
   );
 
   return (
-    <div className="flex h-dvh overflow-hidden">
+    <div className="flex min-h-0 flex-1 overflow-hidden">
       {/* Lista chat: sidebar su desktop, home su mobile */}
       <aside
         className={`${mobileDetail ? "hidden" : "flex"} w-full flex-col bg-surface md:flex md:w-72 md:shrink-0 md:border-r md:border-line`}
       >
-        <div className="flex items-center justify-between px-5 pt-6 pb-4">
-          <h1 className="text-lg font-semibold tracking-tight">Chat</h1>
-          <LogoutButton />
+        <div className="flex items-center gap-2 px-2 pt-3 pb-3 md:px-5 md:pt-5">
+          <MenuButton />
+          <h1 className="text-lg font-semibold tracking-tight">Agenti</h1>
         </div>
         <nav className="scroll-thin flex flex-1 flex-col gap-1 overflow-y-auto px-3 pb-24 md:pb-6">
           <button
@@ -257,11 +257,11 @@ export function Chat() {
               onNotes && isDesktop ? "gloss" : "border border-transparent hover:bg-surface-2"
             }`}
           >
-            <Avatar name="Annunci" size={44}>
+            <Avatar name="Note" size={44}>
               <PinIcon />
             </Avatar>
             <div className="min-w-0 flex-1">
-              <div className="font-medium">Annunci</div>
+              <div className="font-medium">Note per i bot</div>
               <p className="truncate text-sm text-muted">
                 {notes?.length ? `${notes.length} ${notes.length === 1 ? "nota" : "note"} in bacheca` : "Bacheca per i bot"}
               </p>
@@ -650,22 +650,6 @@ function Badge({ count }: { count: number }) {
     <span className="grid h-5 min-w-5 place-items-center rounded-full bg-white px-1.5 text-[11px] font-semibold text-black animate-pop">
       {count > 99 ? "99+" : count}
     </span>
-  );
-}
-
-function LogoutButton() {
-  return (
-    <form action={logout}>
-      <button
-        aria-label="Esci"
-        title="Esci"
-        className="grid size-9 place-items-center rounded-full text-muted transition-colors hover:bg-surface-2 hover:text-fg"
-      >
-        <svg viewBox="0 0 24 24" className="size-4.5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-          <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4M10 17l5-5-5-5M15 12H3" />
-        </svg>
-      </button>
-    </form>
   );
 }
 

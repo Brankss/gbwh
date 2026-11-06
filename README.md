@@ -1,6 +1,16 @@
-# Chat con i bot
+# Hub personale
 
-Sito personale per chattare con **Berlusc**, **Syrup** e **Aurelio**.
+Il tuo spazio unico: cosa è attivo **adesso**, annunci importanti, progetti con checkpoint, dropshipping (prodotti + pubblicità), media, chat con gli agent e classifiche dei modelli AI.
+
+| Sezione | Cosa fa |
+|---|---|
+| **Adesso** (`/`) | Home: annunci da leggere, progetti attivi, ultimi messaggi dei bot, media, numeri del dropshipping, podio dei modelli. |
+| **Annunci** | La casella che conta: solo cose importanti, da agent o sezioni dell'hub. Anti-rumore: dedupe + max 5 al giorno per fonte. |
+| **Progetti** | Stato attuale, prossimi passi e **conoscenze** (errori, esperienza, ricerche, correzioni) accumulate dai checkpoint. Gli agent li leggono e li aggiornano. |
+| **Dropshipping** | Prodotti e pubblicità collegati tra loro e ai media (spesa, ricavi, ROAS, margine). |
+| **Media** | Tutte le foto/video mandati dai bot + i tuoi upload, filtrabili per bot e tipo. |
+| **Agenti** | Chat con i bot (Grok ecc.) e note per i bot. |
+| **Modelli AI** | Classifiche LLM / immagini / video con tutti i benchmark, e **Confronta** tra i modelli che scegli. |
 
 Stack: Next.js 16 (App Router), React 19, Tailwind CSS 4, Upstash Redis.
 
@@ -93,6 +103,22 @@ Il bot si può indicare anche nel body (`"bot": "berlu"`). Il testo può stare i
 curl "https://<sito>/api/board?bot=berlu" -H "Authorization: Bearer <INBOUND_SECRET>"
 curl -X POST "https://<sito>/api/board?bot=berlu" -H "Authorization: Bearer <INBOUND_SECRET>" -H "Content-Type: application/json" -d '{"message":"yo"}'
 ```
+
+## API per gli agent
+
+Tutte con `Authorization: Bearer <INBOUND_SECRET>` (o `?token=`). **`GET /api/agent`** restituisce le istruzioni complete, leggibili dall'agent stesso.
+
+| Endpoint | |
+|---|---|
+| `GET /api/agent/projects` | Progetti con l'ultimo checkpoint |
+| `GET /api/agent/projects/<id>` | Progetto completo: checkpoint + conoscenze |
+| `POST /api/agent/projects/<id>/checkpoints` | `{author, summary, progress?, next?: [], learnings?: [{kind, text}]}`; kind: `errore`, `esperienza`, `ricerca`, `correzione` |
+| `POST /api/agent/alerts` | `{source, title, level: "importante" o "urgente", body?, link?, dedupeKey?}`; solo se serve davvero |
+| `POST /api/agent/models` | Carica una classifica: `{kind: "llm", "image" o "video", source, models: [{name, org, open?, scores: {benchmark: valore}}]}` |
+
+## Modelli AI: da dove arrivano i dati
+
+Da **Artificial Analysis** (Intelligence Index, MMLU-Pro, GPQA, HLE, LiveCodeBench…, arene immagini e video). Crea una chiave API gratuita su artificialanalysis.ai e aggiungila su Netlify come `AA_API_KEY`: i dati si aggiornano da soli una volta al giorno (o con il pulsante "Aggiorna"). In alternativa un agent può caricarli con `POST /api/agent/models`.
 
 ## Avvio in locale
 
