@@ -1,6 +1,6 @@
 import "server-only";
-import { get, list, put, stamp } from "./db";
-import type { Alert, Checkpoint, LearningKind, MediaItem, Project, Upload } from "./schemas";
+import { get, list, put, stamp, type Doc } from "./db";
+import type { Ad, Alert, Checkpoint, LearningKind, MediaItem, MediaRef, Product, Project, Upload } from "./schemas";
 import { alertInput } from "./schemas";
 import { getSnapshot } from "./store";
 
@@ -116,4 +116,50 @@ export async function listMedia(): Promise<MediaItem[]> {
     createdAt: u.createdAt,
   }));
   return [...fromBots, ...mine].sort((a, b) => b.createdAt - a.createdAt);
+}
+
+/* ------------------------------------------------------------------ */
+/* Collegamento automatico dei media a prodotti e pubblicità           */
+/* ------------------------------------------------------------------ */
+
+type Linkable = Doc & { name: string; media: MediaRef[] };
+
+/** Cerca per id esatto oppure per nome (senza maiuscole/spazi extra). */
+function findByRef<T extends Linkable>(items: T[], ref: string) {
+  const key = ref.trim().toLowerCase();
+  return items.find((i) => i.id === ref) ?? items.find((i) => i.name.trim().toLowerCase() === key) ?? null;
+}
+
+export type LinkResult = { product?: { id: string; name: string } | null; ad?: { id: string; name: string } | null };
+
+/**
+ * Un bot manda un media dicendo a cosa serve ("product": "Lampada luna", "ad": "<id>"):
+ * lo aggiungiamo alla scheda del prodotto e/o della pubblicità, senza doppioni.
+ * null = riferimento indicato ma non trovato.
+ */
+export async function linkMedia(refs: { product?: string; ad?: string }, media: MediaRef[]): Promise<LinkResult> {
+  const out: LinkResult = {};
+  const attach = async <T extends Linkable>(col: string, ref: string, max: number) => {
+    const item = findByRef(await list<T>(col), ref);
+    if (!item) return null;
+    const merged = [...item.media, ...media.filter((m) => !item.media.some((x) => x.id === m.id))].slice(-max);
+    await put(col, { ...item, media: merged, updatedAt: Date.now() });
+    return { id: item.id, name: item.name };
+  };
+  if (refs.product) out.product = media.length ? await attach<Product>("products", refs.product, 50) : null;
+  if (refs.ad) out.ad = media.length ? await attach<Ad>("ads", refs.ad, 20) : null;
+  return out;
+}
+
+/** Elenco compatto per gli agent: così sanno a quale prodotto/pubblicità riferirsi. */
+export async function listCatalog() {
+  const [products, ads] = await Promise.all([list<Product>("products"), list<Ad>("ads")]);
+  return products.map((p) => ({
+    id: p.id,
+    name: p.name,
+    status: p.status,
+    price: p.price,
+    media: p.media.length,
+    ads: ads.filter((a) => a.productId === p.id).map((a) => ({ id: a.id, name: a.name, status: a.status, platform: a.platform })),
+  }));
 }

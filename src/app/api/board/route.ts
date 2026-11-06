@@ -2,6 +2,7 @@ import type { NextRequest } from "next/server";
 import { agentAuthError as authError } from "@/lib/agent-auth";
 import { MAX_TEXT, toBotId, toBotName, type BotId, type Media, type Message } from "@/lib/bots";
 import { MAX_UPLOAD, isAllowedMime, saveMedia } from "@/lib/media";
+import { linkMedia } from "@/lib/hub";
 import { addMessage, ensureBot, getSnapshot, markRead } from "@/lib/store";
 
 /**
@@ -18,6 +19,9 @@ import { addMessage, ensureBot, getSnapshot, markRead } from "@/lib/store";
  *
  * BOT NUOVI: se ?bot= non esiste ancora, alla prima risposta il bot viene creato da solo,
  *   con il nome passato in "name" (o bot_name / botName / sender, oppure ?name=).
+ *
+ * COLLEGARE UN MEDIA: aggiungi "product" (id o nome) e/o "ad" (id o nome): il media finisce
+ *   anche sulla scheda del prodotto / della pubblicità. Elenco: GET /api/agent/products.
  *
  * RISPONDERE (testo, foto, video):
  *   POST /api/board?bot=berlu   { "message": "ciao", "media": ["https://.../foto.jpg"] }
@@ -131,6 +135,8 @@ async function parseReply(request: NextRequest) {
       name: field("name") ?? field("bot_name") ?? field("botName"),
       text: field("message") ?? field("text") ?? field("caption") ?? "",
       media,
+      product: field("product"),
+      ad: field("ad"),
     };
   }
 
@@ -155,6 +161,8 @@ async function parseReply(request: NextRequest) {
     name: str(body.name) ?? str(body.bot_name) ?? str(body.botName) ?? str(body.sender),
     text: str(candidate) ?? "",
     media,
+    product: str(body.product),
+    ad: str(body.ad),
   };
 }
 
@@ -187,8 +195,19 @@ export async function POST(request: NextRequest) {
   if (reply.media.length) message.media = reply.media;
   await addMessage(message);
 
+  // "Questo video è per la lampada": il media finisce anche sulla scheda del prodotto / della pubblicità.
+  const productRef = query.get("product") ?? reply.product;
+  const adRef = query.get("ad") ?? reply.ad;
+  const linked =
+    productRef || adRef
+      ? await linkMedia(
+          { product: productRef ?? undefined, ad: adRef ?? undefined },
+          (message.media ?? []).map((m, i) => ({ id: `${message.id}:${i}`, url: m.url, type: m.type })),
+        )
+      : undefined;
+
   return Response.json(
-    { ok: true, id: message.id, bot: known.bot, created: known.created, media: message.media ?? [] },
+    { ok: true, id: message.id, bot: known.bot, created: known.created, media: message.media ?? [], ...(linked && { linked }) },
     { headers: noStore },
   );
 }

@@ -11,7 +11,10 @@ export async function GET(request: NextRequest) {
     auth: "Header 'Authorization: Bearer <token>' oppure ?token=<token> su ogni richiesta.",
     endpoints: {
       "GET /api/board?bot=<id>&since=<cursor>": "Messaggi di Branko per te + note visibili a te. Ripassa con since=cursor.",
-      "POST /api/board?bot=<id>": "Rispondi. Body: {message, name?, media?}. Se sei un bot nuovo vieni creato con 'name'.",
+      "POST /api/board?bot=<id>":
+        "Rispondi. Body: {message, name?, media?, product?, ad?}. Se sei un bot nuovo vieni creato con 'name'. " +
+        "Con product/ad (id o nome) il media viene collegato alla scheda del prodotto/pubblicità.",
+      "GET /api/agent/products": "Prodotti e pubblicità (id, nome, stato): per sapere a cosa collegare i media.",
       "GET /api/agent/projects": "Progetti con l'ultimo checkpoint di ognuno.",
       "GET /api/agent/projects/<id>": "Progetto completo: checkpoint (dal più recente) e conoscenze accumulate.",
       "POST /api/agent/projects/<id>/checkpoints":
