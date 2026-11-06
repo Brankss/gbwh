@@ -6,6 +6,7 @@ import { DEFAULT_BOTS, MAX_TEXT, type Bot, type BotId, type Inbox, type Media, t
 import { Notes } from "./notes";
 import { MenuButton } from "./shell";
 import { Avatar, PinIcon, useAutosize } from "./ui";
+import { WakeButton, WakeLine, WakeSettings } from "./wake-controls";
 
 type LocalMessage = Message & { pending?: boolean; local?: boolean; failed?: boolean };
 
@@ -236,7 +237,9 @@ export function Chat() {
       <div className="min-w-0">
         <div className="font-medium leading-tight">{bot.name}</div>
         <div className="truncate text-xs text-muted">{status}</div>
+        <WakeLine botId={bot.id} />
       </div>
+      <WakeButton botId={bot.id} name={bot.name} />
     </>
   );
 
@@ -301,6 +304,7 @@ export function Chat() {
             );
           })}
         </nav>
+        <WakeSettings />
       </aside>
 
       <main className={`${mobileDetail ? "flex" : "hidden"} min-w-0 flex-1 flex-col md:flex`}>

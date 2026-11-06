@@ -1,7 +1,6 @@
-import { after } from "next/server";
 import { MAX_TEXT, type BotId, type Note } from "@/lib/bots";
 import { deleteNote, getBots, getNote, saveNote } from "@/lib/store";
-import { wakeBot } from "@/lib/wake";
+import { wakeWithin } from "@/lib/wake";
 
 // Annunci in bacheca. Solo per te (protetto da password via proxy.ts);
 // i bot li leggono da GET /api/board, ognuno solo quelli visibili a lui.
@@ -27,8 +26,8 @@ export async function POST(request: Request) {
     ts: Date.now(),
   };
   await saveNote(note);
-  // Sveglia i bot che possono leggerla.
-  after(() => Promise.all(note.visibleTo.map((b) => wakeBot(b, { kind: "nota", text }))));
+  // Sveglia i bot che possono leggerla (in parallelo, con tetto di tempo).
+  await Promise.all(note.visibleTo.map((b) => wakeWithin(b, { kind: "nota", text })));
   return Response.json({ note });
 }
 

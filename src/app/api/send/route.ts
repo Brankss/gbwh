@@ -1,7 +1,6 @@
-import { after } from "next/server";
 import { MAX_TEXT, type Message } from "@/lib/bots";
 import { addMessage, getBots } from "@/lib/store";
-import { wakeBot } from "@/lib/wake";
+import { wakeWithin } from "@/lib/wake";
 
 // Il messaggio va in bacheca: sarà l'agent a passare a leggerlo (GET /api/board).
 export async function POST(request: Request) {
@@ -15,8 +14,9 @@ export async function POST(request: Request) {
 
   const message: Message = { id: crypto.randomUUID(), bot, from: "me", text, ts: Date.now() };
   await addMessage(message);
-  // Sveglia il bot via email, dopo aver risposto (non rallenta la chat).
-  after(() => wakeBot(bot, { kind: "messaggio", text }));
+  // Sveglia il bot via email. Si aspetta l'invio (su serverless dopo la risposta la funzione può
+  // spegnersi), con un tetto di tempo: la chat è già aggiornata lato browser, quindi non si nota.
+  const wake = await wakeWithin(bot, { kind: "messaggio", text });
 
-  return Response.json({ message });
+  return Response.json({ message, wake });
 }
