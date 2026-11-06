@@ -17,8 +17,27 @@ const RETRY_AFTER = 15 * 60 * 1000;
 
 const memLast = ((globalThis as { __wakeLast?: Record<string, number> }).__wakeLast ??= {});
 
+/** Le variabili richieste. I valori vengono ripuliti: spazi ai lati, e la password per le app
+ *  di Gmail (mostrata a blocchi "abcd efgh ijkl mnop") senza spazi. */
+const REQUIRED = ["WAKE_EMAIL", "SMTP_HOST", "SMTP_USER", "SMTP_PASS"] as const;
+
+function env(name: string) {
+  const v = process.env[name]?.trim();
+  if (!v) return undefined;
+  return name === "SMTP_PASS" ? v.replace(/\s+/g, "") : v;
+}
+
 export function wakeConfigured() {
-  return Boolean(process.env.WAKE_EMAIL && process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS);
+  return REQUIRED.every((k) => env(k));
+}
+
+/** Diagnosi (solo nomi, mai valori): cosa manca e quali variabili simili esistono (refusi tipo SMTP_PASSWORD). */
+export function wakeDiagnosis() {
+  const missing = REQUIRED.filter((k) => !env(k));
+  const similar = Object.keys(process.env)
+    .filter((k) => /^(SMTP|WAKE|MAIL)/i.test(k) && !(REQUIRED as readonly string[]).includes(k))
+    .sort();
+  return { missing, similar };
 }
 
 /** pandoro@mail.grokbot.com + syrup → pandoro+syrup@mail.grokbot.com */
@@ -31,12 +50,12 @@ export function taggedAddress(base: string, botId: string) {
 let transport: Transporter | null = null;
 function mailer() {
   if (!transport) {
-    const port = Number(process.env.SMTP_PORT ?? 465);
+    const port = Number(env("SMTP_PORT") ?? 465);
     transport = nodemailer.createTransport({
-      host: process.env.SMTP_HOST,
+      host: env("SMTP_HOST"),
       port,
       secure: port === 465,
-      auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
+      auth: { user: env("SMTP_USER"), pass: env("SMTP_PASS") },
       // Tempi brevi: su serverless non possiamo aspettare minuti un server che non risponde.
       connectionTimeout: 8_000,
       greetingTimeout: 8_000,
@@ -105,8 +124,8 @@ export async function wakeBot(
       what.kind === "nota" ? "Nuova nota di Branko visibile a te:" : what.kind === "manuale" ? "Branko ti chiede di controllare l'hub." : "Branko ti ha scritto:";
 
     await mailer().sendMail({
-      from: process.env.MAIL_FROM || process.env.SMTP_USER,
-      to: taggedAddress(process.env.WAKE_EMAIL!, botId),
+      from: env("MAIL_FROM") || env("SMTP_USER"),
+      to: taggedAddress(env("WAKE_EMAIL")!, botId),
       subject: `[${botId}] ${what.kind === "nota" ? "Nuova nota" : what.kind === "manuale" ? "Sveglia" : "Nuovo messaggio"} per ${name}`,
       text: [
         `Sveglia per: ${name} (bot=${botId})`,
@@ -154,7 +173,8 @@ export async function wakeStatus() {
   const logs = redis ? ((await redis.hgetall<Record<string, WakeLog>>(LOG_KEY)) ?? {}) : memLog;
   return {
     configured,
-    address: configured ? taggedAddress(process.env.WAKE_EMAIL!, "<bot>") : null,
+    address: configured ? taggedAddress(env("WAKE_EMAIL")!, "<bot>") : null,
     bots: logs,
+    ...wakeDiagnosis(),
   };
 }

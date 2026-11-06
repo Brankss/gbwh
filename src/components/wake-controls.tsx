@@ -4,7 +4,13 @@ import { useState } from "react";
 import { ago, send, useApi } from "@/lib/client";
 import type { WakeLog } from "@/lib/wake";
 
-type Status = { configured: boolean; address: string | null; bots: Record<string, WakeLog> };
+type Status = {
+  configured: boolean;
+  address: string | null;
+  bots: Record<string, WakeLog>;
+  missing: string[];
+  similar: string[];
+};
 
 const KEY = "/api/wake";
 
@@ -98,7 +104,19 @@ export function WakeSettings() {
         )}
       </div>
       {data.configured && data.address && <div className="truncate font-mono text-[10px]">{data.address}</div>}
-      {!data.configured && <div>Aggiungi su Netlify WAKE_EMAIL e le variabili SMTP (vedi README).</div>}
+      {!data.configured && (
+        <div className="space-y-1">
+          <div>
+            Il sito non trova: <span className="font-mono text-[#ec8585]">{data.missing.join(", ")}</span>
+          </div>
+          {data.similar.length > 0 && (
+            <div>
+              Ha invece: <span className="font-mono text-fg">{data.similar.join(", ")}</span>. Controlla che i nomi siano esattamente quelli sopra.
+            </div>
+          )}
+          <div>Su Netlify: nomi esatti, scope che include “Functions”, poi un nuovo deploy.</div>
+        </div>
+      )}
       {test && test !== "busy" && (
         <div className={test.ok ? "text-fg" : "text-[#ec8585]"}>{test.ok ? "✓ Server di posta raggiungibile e credenziali ok." : `✕ ${test.error}`}</div>
       )}
