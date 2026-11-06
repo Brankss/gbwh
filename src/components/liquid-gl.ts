@@ -1,4 +1,5 @@
-// Mercurio nero in WebGL: metaball + tentacoli, normali dal campo, riflesso cromato a fasce.
+// Mercurio nero in WebGL: metaball + tentacoli curvi che sgocciolano, normali dal campo,
+// riflesso da "studio" con soft-box, alone freddo e reazione al puntatore.
 // Gira sulla GPU a risoluzione ridotta: leggero anche su telefono. Nessuna libreria.
 
 export type Layout = "wide" | "tall" | "hero" | "heroTall";
@@ -72,8 +73,8 @@ const SCENES: Record<Layout, { w: number; h: number; balls: Ball[]; lashes: Lash
   },
 };
 
-const MAX_BALLS = 8;
-const MAX_LASHES = 4;
+const MAX_BALLS = 12; // gocce della scena + gocce che si staccano dalle punte + goccia del puntatore
+const MAX_SEGS = 8; // ogni tentacolo = 2 segmenti curvi
 
 const VERT = `attribute vec2 p; void main(){ gl_Position = vec4(p, 0.0, 1.0); }`;
 
@@ -84,20 +85,20 @@ uniform vec2 uScene;    // dimensioni scena
 uniform float uTime;
 uniform float uGain;    // luminosità: piena per il login, più bassa per lo sfondo dietro ai testi
 uniform vec3 uBalls[${MAX_BALLS}];   // x, y, r
-uniform vec4 uLashA[${MAX_LASHES}];  // ax, ay, bx, by
-uniform vec2 uLashW[${MAX_LASHES}];  // spessore base, (non usato)
+uniform vec4 uSegs[${MAX_SEGS}];     // ax, ay, bx, by
+uniform vec2 uSegW[${MAX_SEGS}];     // spessore all'inizio, spessore alla fine (affusolato)
 uniform int uNB;
-uniform int uNL;
+uniform int uNS;
+uniform vec3 uMouse;    // x, y (scena), intensità 0..1
 
 // cover: come object-fit: cover
 vec2 toScene(vec2 frag){
   float s = max(uRes.x / uScene.x, uRes.y / uScene.y);
   vec2 off = (uRes - uScene * s) * 0.5;
-  vec2 q = (vec2(frag.x, uRes.y - frag.y) - off) / s;
-  return q;
+  return (vec2(frag.x, uRes.y - frag.y) - off) / s;
 }
 
-// Campo + gradiente in un solo passaggio (derivata analitica): 1 valutazione per pixel invece di 5.
+// Campo + gradiente in un solo passaggio (derivata analitica): 1 valutazione per pixel.
 vec3 field(vec2 p){
   float f = 0.0;
   vec2 g = vec2(0.0);
@@ -105,21 +106,22 @@ vec3 field(vec2 p){
     if (i >= uNB) break;
     vec3 b = uBalls[i];
     vec2 d = p - b.xy;
-    // caduta 1/d^4: la goccia resta della sua misura e si fonde solo quando un'altra si avvicina
-    float q = dot(d, d) + 1.0;
+    // caduta 1/d^4: la goccia resta della sua misura e si fonde solo quando un'altra si avvicina.
+    // Il termine 0.3 r^2 arrotonda il centro: niente "girandola" di riflessi nel mezzo della goccia.
+    float q = dot(d, d) + 0.3 * b.z * b.z;
     float k = (b.z * b.z) / q;
     k *= k;
     f += k;
     g += -4.0 * k / q * d;
   }
-  for (int i = 0; i < ${MAX_LASHES}; i++){
-    if (i >= uNL) break;
-    vec2 a = uLashA[i].xy, c = uLashA[i].zw;
+  for (int i = 0; i < ${MAX_SEGS}; i++){
+    if (i >= uNS) break;
+    vec2 a = uSegs[i].xy, c = uSegs[i].zw;
     vec2 pa = p - a, ba = c - a;
     float h = clamp(dot(pa, ba) / dot(ba, ba), 0.0, 1.0);
-    float w = uLashW[i].x * (1.0 - h * 0.85);   // tentacolo affusolato
+    float w = mix(uSegW[i].x, uSegW[i].y, h);   // tentacolo affusolato verso la punta
     vec2 d = pa - ba * h;
-    float q = dot(d, d) + 0.6 * w * w;   // ammorbidito sull'asse: niente righe
+    float q = dot(d, d) + 0.6 * w * w;          // ammorbidito sull'asse: niente righe
     float k = (w * w) / q;
     k *= k;
     f += k;
@@ -128,43 +130,67 @@ vec3 field(vec2 p){
   return vec3(f, g);
 }
 
+// Ambiente "da studio" riflesso: grande soft-box in alto, due strisce di luce ai lati,
+// orizzonte morbido e fasce lente. Si sposta pianissimo: il riflesso scorre come su metallo liquido.
+float studio(vec3 r){
+  float drift = sin(uTime * 0.07) * 0.18;
+  float top = smoothstep(0.30, 0.78, r.y) * smoothstep(1.0, 0.35, abs(r.x + 0.2 + drift));
+  float stripL = smoothstep(0.11, 0.0, abs(r.x + 0.70 - drift * 0.5)) * smoothstep(-0.7, 0.25, r.y);
+  float stripR = smoothstep(0.06, 0.0, abs(r.x - 0.80 + drift)) * smoothstep(-0.5, 0.45, r.y) * 0.75;
+  float horizon = exp(-pow((r.y + 0.08) * 6.5, 2.0)) * 0.32;
+  float bands = pow(0.5 + 0.5 * sin((r.y * 2.4 + r.x * 1.1) * 3.2 + uTime * 0.09), 8.0) * 0.35;
+  return top + stripL * 0.9 + stripR + horizon + bands;
+}
+
 void main(){
   vec2 p = toScene(gl_FragCoord.xy);
   float px = 1.0 / max(uRes.x / uScene.x, uRes.y / uScene.y); // un pixel, in unità scena
   vec3 F = field(p);
   float f = F.x;
-  if (f < 0.7) { gl_FragColor = vec4(0.0); return; }
   vec2 g = F.yz;
+
+  // Alone freddo appena fuori dalla forma (luce che "sbava" sul nero): usa lo stesso campo, costo zero.
+  float halo = pow(smoothstep(0.22, 1.0, f), 3.0) * 0.10;
+  if (f < 0.22) { gl_FragColor = vec4(0.0); return; }
 
   // Bordo netto: distanza dalla soglia misurata in pixel (antialias di 1 pixel)
   float edge = clamp((f - 1.0) / max(length(g) * px, 1e-4) + 0.5, 0.0, 1.0);
-  if (edge <= 0.0) { gl_FragColor = vec4(0.0); return; }
 
-  // Normali: la goccia è una cupola, ripida ai bordi e piatta al centro
-  float dome = 1.0 / (0.4 + f * 0.9);
-  vec3 n = normalize(vec3(-g * 30.0 * dome, 1.0));
+  // Normali: la goccia è una cupola, ripida ai bordi e piatta all'interno. La pendenza scala con 1/f^2,
+  // così dove due gocce si incontrano (campo alto) le normali non "saturano" in una stella di riflessi.
+  float dome = 1.0 / (0.15 + 0.85 * f * f);
+  vec3 n = normalize(vec3(-g * 34.0 * dome, 1.0));
 
-  // Riflesso: fasce d'argento di un "ambiente" che scorre piano
+  // Increspatura vicino al puntatore/tocco
+  vec2 dm = p - uMouse.xy;
+  float md = length(dm);
+  n.xy += (dm / max(md, 1.0)) * sin(md * 0.11 - uTime * 4.5) * exp(-md / 85.0) * 0.22 * uMouse.z;
+  n = normalize(n);
+
+  // Riflesso con una leggerissima aberrazione fredda, solo verso il bordo (come nelle lenti vere)
   vec3 r = reflect(vec3(0.0, 0.0, -1.0), n);
-  float band = r.y * 2.4 + r.x * 1.1 + uTime * 0.03;
-  float env = pow(0.5 + 0.5 * sin(band * 3.2), 6.0) * 0.9 + pow(0.5 + 0.5 * sin(band * 1.3 + 1.7), 10.0) * 0.6;
-  vec3 base = vec3(0.02);
-  vec3 silver = vec3(0.86, 0.87, 0.89);
-  vec3 col = mix(base, silver, env * 0.75);
+  float fr = pow(1.0 - n.z, 3.0);
+  float ab = 0.03 * fr;
+  vec3 env = vec3(studio(r + vec3(ab, 0.0, 0.0)), studio(r), studio(r - vec3(ab * 1.2, 0.0, 0.0)));
+  vec3 base = vec3(0.012, 0.012, 0.014);
+  vec3 silver = vec3(0.88, 0.89, 0.91);
+  vec3 col = base + silver * env * 0.82;
 
   // Luce principale (argento) e controluce fredda
   vec3 l1 = normalize(vec3(-0.6, 0.7, 0.9));
   vec3 l2 = normalize(vec3(0.7, -0.5, 0.4));
-  float s1 = pow(max(dot(r, l1), 0.0), 42.0);
-  float s2 = pow(max(dot(r, l2), 0.0), 12.0) * 0.25;
-  col += vec3(1.0) * s1 * 1.1 + vec3(0.6, 0.66, 0.74) * s2;
+  float s1 = pow(max(dot(r, l1), 0.0), 60.0);
+  float s2 = pow(max(dot(r, l2), 0.0), 14.0) * 0.22;
+  col += vec3(1.0) * s1 * 1.25 + vec3(0.6, 0.67, 0.76) * s2;
 
-  // Fresnel: filo chiaro sul bordo
-  float fr = pow(1.0 - n.z, 3.0);
-  col += vec3(0.8) * fr * 0.4;
+  // Fresnel: filo chiaro sul bordo, con un velo iridescente freddo appena accennato
+  vec3 iri = vec3(0.55, 0.62, 0.78) + 0.12 * vec3(sin(uTime * 0.3 + n.x * 7.0), sin(uTime * 0.3 + n.y * 7.0 + 2.0), sin(uTime * 0.3 + 4.0));
+  col += iri * fr * 0.42;
 
   col *= uGain;
-  gl_FragColor = vec4(col * edge, edge);
+  vec3 glow = vec3(0.55, 0.6, 0.68) * halo * uGain;
+  float a = max(edge, halo * 0.6);
+  gl_FragColor = vec4(col * edge + glow * (1.0 - edge), a);
 }`;
 
 function compile(gl: WebGLRenderingContext, type: number, src: string) {
@@ -176,7 +202,11 @@ function compile(gl: WebGLRenderingContext, type: number, src: string) {
 }
 
 /** Avvia il mercurio su un canvas. Restituisce la funzione per fermarlo, o null se WebGL non c'è. */
-export function startLiquid(canvas: HTMLCanvasElement, layout: Layout, opts: { scale: number; animate: boolean; gain: number }) {
+export function startLiquid(
+  canvas: HTMLCanvasElement,
+  layout: Layout,
+  opts: { scale: number; animate: boolean; gain: number; follow?: boolean },
+) {
   const gl = canvas.getContext("webgl", { premultipliedAlpha: true, alpha: true, antialias: false, powerPreference: "low-power" });
   if (!gl || gl.isContextLost()) return null;
 
@@ -202,16 +232,16 @@ export function startLiquid(canvas: HTMLCanvasElement, layout: Layout, opts: { s
 
   const u = (n: string) => gl.getUniformLocation(prog, n);
   const uRes = u("uRes");
-  const uScene = u("uScene");
   const uTime = u("uTime");
   const uBalls = u("uBalls");
-  const uLashA = u("uLashA");
-  const uLashW = u("uLashW");
+  const uSegs = u("uSegs");
+  const uSegW = u("uSegW");
+  const uNB = u("uNB");
+  const uMouse = u("uMouse");
   const scene = SCENES[layout];
-  gl.uniform2f(uScene, scene.w, scene.h);
+  gl.uniform2f(u("uScene"), scene.w, scene.h);
   gl.uniform1f(u("uGain"), opts.gain);
-  gl.uniform1i(u("uNB"), scene.balls.length);
-  gl.uniform1i(u("uNL"), scene.lashes.length);
+  gl.uniform1i(u("uNS"), Math.min(scene.lashes.length * 2, MAX_SEGS));
 
   const resize = () => {
     const w = Math.max(1, Math.round(canvas.clientWidth * opts.scale));
@@ -224,29 +254,98 @@ export function startLiquid(canvas: HTMLCanvasElement, layout: Layout, opts: { s
     gl.uniform2f(uRes, w, h);
   };
 
-  const balls = new Float32Array(MAX_BALLS * 3);
-  const lashA = new Float32Array(MAX_LASHES * 4);
-  const lashW = new Float32Array(MAX_LASHES * 2);
+  /* Puntatore / tocco: posizione in coordinate di scena, ammorbidita; l'intensità si spegne da sola. */
+  const pointer = { x: scene.w / 2, y: scene.h / 2, tx: scene.w / 2, ty: scene.h / 2, s: 0, last: -1e9 };
+  const onPointer = (e: PointerEvent) => {
+    const rect = canvas.getBoundingClientRect();
+    if (!rect.width) return;
+    const k = Math.max(rect.width / scene.w, rect.height / scene.h);
+    pointer.tx = (e.clientX - rect.left - (rect.width - scene.w * k) / 2) / k;
+    pointer.ty = (e.clientY - rect.top - (rect.height - scene.h * k) / 2) / k;
+    if (pointer.s < 0.01) {
+      pointer.x = pointer.tx;
+      pointer.y = pointer.ty;
+    }
+    pointer.last = performance.now();
+  };
+  if (opts.animate) {
+    window.addEventListener("pointermove", onPointer, { passive: true });
+    window.addEventListener("pointerdown", onPointer, { passive: true });
+  }
 
-  const draw = (t: number) => {
+  const balls = new Float32Array(MAX_BALLS * 3);
+  const segs = new Float32Array(MAX_SEGS * 4);
+  const segW = new Float32Array(MAX_SEGS * 2);
+  /** Quanto le gocce si sporgono verso il puntatore (discreto sullo sfondo, deciso nel login). */
+  const pull = opts.follow ? 70 : 28;
+
+  const draw = (t: number, now: number) => {
     resize();
-    scene.balls.forEach((b, i) => {
-      balls[i * 3] = b.x + Math.sin(t * b.sp + b.ph) * b.ax;
-      balls[i * 3 + 1] = b.y + Math.cos(t * b.sp * 0.8 + b.ph) * b.ay;
-      balls[i * 3 + 2] = b.r * (1 + 0.08 * Math.sin(t * b.sp * 1.3 + b.ph));
-    });
+
+    // intensità del puntatore: sale quando si muove, si spegne in ~2s di quiete
+    const active = now - pointer.last < 2200 ? 1 : 0;
+    pointer.s += (active - pointer.s) * 0.06;
+    pointer.x += (pointer.tx - pointer.x) * 0.08;
+    pointer.y += (pointer.ty - pointer.y) * 0.08;
+
+    let nb = 0;
+    const pushBall = (x: number, y: number, r: number) => {
+      if (nb >= MAX_BALLS) return;
+      balls[nb * 3] = x;
+      balls[nb * 3 + 1] = y;
+      balls[nb * 3 + 2] = r * 1.2; // compensa il centro arrotondato (stesso contorno di prima)
+      nb++;
+    };
+
+    for (const b of scene.balls) {
+      // due frequenze per un moto meno meccanico
+      let x = b.x + Math.sin(t * b.sp + b.ph) * b.ax + Math.sin(t * b.sp * 2.3 + b.ph * 1.7) * b.ax * 0.18;
+      let y = b.y + Math.cos(t * b.sp * 0.8 + b.ph) * b.ay + Math.cos(t * b.sp * 1.9 + b.ph * 0.6) * b.ay * 0.2;
+      // attrazione morbida verso il puntatore
+      const dx = pointer.x - x;
+      const dy = pointer.y - y;
+      const dist = Math.hypot(dx, dy) || 1;
+      const lean = pointer.s * pull * Math.exp(-dist / 320);
+      x += (dx / dist) * Math.min(lean, dist * 0.5);
+      y += (dy / dist) * Math.min(lean, dist * 0.5);
+      pushBall(x, y, b.r * (1 + 0.08 * Math.sin(t * b.sp * 1.3 + b.ph)));
+    }
+
+    // Tentacoli: due segmenti con un'onda che corre dalla base alla punta (frusta), più una goccia
+    // che si stacca dalla punta, si allontana rimpicciolendo e ricomincia.
+    let ns = 0;
     scene.lashes.forEach((l, i) => {
+      if (ns + 2 > MAX_SEGS) return;
       const a = l.ang + Math.sin(t * l.sp + l.ph) * l.swing;
-      const len = l.len * (0.8 + 0.25 * Math.sin(t * l.sp * 0.7 + l.ph));
-      lashA[i * 4] = l.x;
-      lashA[i * 4 + 1] = l.y;
-      lashA[i * 4 + 2] = l.x + Math.cos(a) * len;
-      lashA[i * 4 + 3] = l.y + Math.sin(a) * len;
-      lashW[i * 2] = l.w;
+      const len = l.len * (0.78 + 0.26 * Math.sin(t * l.sp * 0.7 + l.ph));
+      const cx = Math.cos(a);
+      const cy = Math.sin(a);
+      const wave = Math.sin(t * l.sp * 1.4 + l.ph) * len * 0.16;
+      const mx = l.x + cx * len * 0.55 - cy * wave;
+      const my = l.y + cy * len * 0.55 + cx * wave;
+      const bend = a + Math.sin(t * l.sp * 1.4 + l.ph - 1.1) * 0.55;
+      const tx = mx + Math.cos(bend) * len * 0.45;
+      const ty = my + Math.sin(bend) * len * 0.45;
+      segs.set([l.x, l.y, mx, my], ns * 4);
+      segW.set([l.w, l.w * 0.6], ns * 2);
+      ns++;
+      segs.set([mx, my, tx, ty], ns * 4);
+      segW.set([l.w * 0.6, l.w * 0.13], ns * 2);
+      ns++;
+      // goccia che sgocciola dalla punta
+      const ph = (t * 0.11 + i * 0.37) % 1;
+      const go = ph * ph * 140;
+      pushBall(tx + Math.cos(bend) * go, ty + Math.sin(bend) * go, l.w * 0.42 * Math.pow(1 - ph, 0.8));
     });
+
+    // Nel login una gocciolina d'argento segue il cursore e si fonde con il resto quando ci passa vicino.
+    if (opts.follow && pointer.s > 0.02) pushBall(pointer.x, pointer.y, 30 * pointer.s);
+
+    gl.uniform1i(uNB, nb);
     gl.uniform3fv(uBalls, balls);
-    gl.uniform4fv(uLashA, lashA);
-    gl.uniform2fv(uLashW, lashW);
+    gl.uniform4fv(uSegs, segs);
+    gl.uniform2fv(uSegW, segW);
+    gl.uniform3f(uMouse, pointer.x, pointer.y, pointer.s);
     gl.uniform1f(uTime, t);
     gl.clearColor(0, 0, 0, 0);
     gl.clear(gl.COLOR_BUFFER_BIT);
@@ -257,14 +356,14 @@ export function startLiquid(canvas: HTMLCanvasElement, layout: Layout, opts: { s
   const t0 = performance.now();
   if (opts.animate) {
     const loop = (now: number) => {
-      draw((now - t0) / 1000);
+      draw((now - t0) / 1000, now);
       raf = requestAnimationFrame(loop);
     };
     raf = requestAnimationFrame(loop);
   } else {
-    draw(4);
+    draw(4, -1e9);
   }
-  const onResize = () => !opts.animate && draw(4);
+  const onResize = () => !opts.animate && draw(4, -1e9);
   window.addEventListener("resize", onResize);
 
   // Stop: libera programma e buffer ma NON spegne il contesto, così lo stesso canvas può ripartire
@@ -272,6 +371,8 @@ export function startLiquid(canvas: HTMLCanvasElement, layout: Layout, opts: { s
   return () => {
     cancelAnimationFrame(raf);
     window.removeEventListener("resize", onResize);
+    window.removeEventListener("pointermove", onPointer);
+    window.removeEventListener("pointerdown", onPointer);
     gl.deleteBuffer(buf);
     gl.deleteProgram(prog);
     gl.clearColor(0, 0, 0, 0);

@@ -36,7 +36,8 @@ export function Liquid({ variant = "backdrop" }: { variant?: Variant }) {
       stop = startLiquid(el, layout, {
         scale: dpr * (variant === "hero" ? 0.75 : 0.5),
         animate: !still.matches,
-        gain: variant === "hero" ? 1 : 0.55,
+        gain: variant === "hero" ? 1 : 0.42,
+        follow: variant === "hero",
       });
       box.dataset.gl = stop ? "on" : "off";
     };
