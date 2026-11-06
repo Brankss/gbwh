@@ -30,10 +30,16 @@ export function WakeLine({ botId }: { botId: string }) {
 /** Pulsante ⚡: sveglia subito il bot (ignora l'anti-raffica). */
 export function WakeButton({ botId, name }: { botId: string; name: string }) {
   const { data } = useWake();
-  const [state, setState] = useState<"idle" | "busy" | "ok" | "err">("idle");
-  if (!data?.configured) return null;
+  const [state, setState] = useState<"idle" | "busy" | "ok" | "err" | "nocfg">("idle");
+  if (!data) return null;
 
   const wake = async () => {
+    // Sempre visibile: se l'email non è configurata lo diciamo invece di nascondere il pulsante.
+    if (!data.configured) {
+      setState("nocfg");
+      setTimeout(() => setState("idle"), 4000);
+      return;
+    }
     setState("busy");
     try {
       await send("POST", KEY, { bot: botId }, [KEY]);
@@ -48,12 +54,20 @@ export function WakeButton({ botId, name }: { botId: string; name: string }) {
     <button
       onClick={wake}
       disabled={state === "busy"}
-      title={`Sveglia ${name} adesso via email`}
+      title={data.configured ? `Sveglia ${name} adesso via email` : "Sveglia email non ancora configurata"}
       aria-label={`Sveglia ${name}`}
       className="press ml-auto flex h-8 shrink-0 items-center gap-1.5 rounded-full border border-white/10 px-3 text-xs font-medium text-[#b4b4b4] hover:border-white/25 hover:bg-white/[0.05] hover:text-fg disabled:opacity-50"
     >
       <span aria-hidden>⚡</span>
-      {state === "busy" ? "Sveglio…" : state === "ok" ? "Inviata" : state === "err" ? "Errore" : "Sveglia"}
+      {state === "busy"
+        ? "Sveglio…"
+        : state === "ok"
+          ? "Inviata"
+          : state === "err"
+            ? "Errore"
+            : state === "nocfg"
+              ? "Email da configurare"
+              : "Sveglia"}
     </button>
   );
 }
