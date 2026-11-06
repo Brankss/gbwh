@@ -120,6 +120,13 @@ Tutte con `Authorization: Bearer <INBOUND_SECRET>` (o `?token=`). **`GET /api/ag
 
 Da **Artificial Analysis** (Intelligence Index, MMLU-Pro, GPQA, HLE, LiveCodeBench…, arene immagini e video). Crea una chiave API gratuita su artificialanalysis.ai e aggiungila su Netlify come `AA_API_KEY`: i dati si aggiornano da soli una volta al giorno (o con il pulsante "Aggiorna"). In alternativa un agent può caricarli con `POST /api/agent/models`.
 
+## Sveglia dei bot via email
+
+Quando scrivi a un bot (o crei una nota visibile a lui) l'hub gli manda una mail di sveglia alla casella comune, con il **tag del bot** nell'indirizzo: `pandoro+syrup@mail.grokbot.com`. Il nome è anche nell'oggetto: `[syrup] Nuovo messaggio per Syrup`.
+
+- Niente raffiche: se il bot è già stato svegliato e non ha ancora letto la bacheca, non parte un'altra mail (riprova dopo 15 minuti se dorme ancora).
+- Si attiva impostando `WAKE_EMAIL` e il server di posta (`SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`): vedi `.env.example`.
+
 ## Avvio in locale
 
 ```bash

@@ -145,3 +145,9 @@ export async function markRead(bots: BotId[], at: number): Promise<void> {
   for (const b of bots) mem.read[b] = at;
   mem.rev++;
 }
+
+/** Quando l'agent di questo bot ha letto la bacheca l'ultima volta (0 = mai). */
+export async function getReadAt(bot: BotId): Promise<number> {
+  if (redis) return Number((await redis.hget<number>(READ_KEY, bot)) ?? 0);
+  return mem.read[bot] ?? 0;
+}
