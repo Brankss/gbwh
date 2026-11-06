@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { BadgeGuard } from "@/components/badge-guard";
 import "./globals.css";
 
 const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
@@ -34,7 +35,13 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           }}
         />
       </head>
-      <body>{children}</body>
+      <body>
+        {/* data-app: tutto ciò che è nostro. Il resto in basso a destra (badge di Netlify) lo misura BadgeGuard. */}
+        <div data-app className="contents">
+          {children}
+        </div>
+        <BadgeGuard />
+      </body>
     </html>
   );
 }

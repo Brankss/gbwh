@@ -321,7 +321,8 @@ body::before {
 
 /* Spazio per il badge "Powered by Netlify" (vedi layout.tsx). Fuori dai layer così vince sulle utility. */
 html[data-nf-badge] .composer-dock {
-  padding-bottom: calc(4rem + env(safe-area-inset-bottom));
+  /* almeno 4rem; se BadgeGuard ha misurato il badge vero, quanto serve davvero */
+  padding-bottom: max(calc(4rem + env(safe-area-inset-bottom)), var(--badge-space, 0px));
 }
 
 @keyframes pop {
