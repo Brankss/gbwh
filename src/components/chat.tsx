@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { logout } from "@/app/actions";
-import { BOTS, MAX_TEXT, isBotId, type BotId, type Inbox, type Media, type Message, type Note, type ReadAt } from "@/lib/bots";
+import { DEFAULT_BOTS, MAX_TEXT, type Bot, type BotId, type Inbox, type Media, type Message, type Note, type ReadAt } from "@/lib/bots";
 import { Notes } from "./notes";
 import { Avatar, PinIcon, useAutosize } from "./ui";
 
@@ -13,7 +13,6 @@ const POLL_MS = 2000;
 const WAIT_REPLY_MS = 90_000;
 const GROUP_MS = 3 * 60_000;
 
-const botById = (id: BotId) => BOTS.find((b) => b.id === id)!;
 
 // Mini store su localStorage (preferenze per dispositivo), letto con useSyncExternalStore.
 const storageListeners = new Set<() => void>();
@@ -70,6 +69,7 @@ export function Chat() {
   const [read, setRead] = useState<ReadAt>({});
   const [viewer, setViewer] = useState<string | null>(null);
   const [notes, setNotes] = useState<Note[] | null>(null);
+  const [bots, setBots] = useState<Bot[]>(DEFAULT_BOTS);
   // Su mobile: false = lista chat, true = chat aperta. Su desktop si vedono entrambe.
   const [mobileDetail, setMobileDetail] = useState(false);
   const isDesktop = useIsDesktop();
@@ -78,7 +78,7 @@ export function Chat() {
   // Vista aperta: la chat di un bot oppure la bacheca annunci.
   const storedActive = useStored("chat:active");
   const onNotes = storedActive === "notes";
-  const active: BotId = isBotId(storedActive) ? storedActive : BOTS[0].id;
+  const active: BotId = storedActive && bots.some((b) => b.id === storedActive) ? storedActive : bots[0].id;
   // La chat conta come "aperta" (messaggi letti) solo se la stai guardando davvero.
   const chatOpen = !onNotes && (isDesktop || mobileDetail);
   const seenRaw = useStored("chat:seen");
@@ -91,10 +91,11 @@ export function Chat() {
       const res = await fetch(`/api/messages?rev=${rev.current}`, { cache: "no-store" });
       if (res.status === 401) return toLogin();
       if (!res.ok) return;
-      const data: { rev: number; inbox?: Inbox; read?: ReadAt; notes?: Note[] } = await res.json();
+      const data: { rev: number; bots?: Bot[]; inbox?: Inbox; read?: ReadAt; notes?: Note[] } = await res.json();
       rev.current = data.rev;
       if (data.inbox) {
         setLoadedAt((t) => t || Date.now());
+        setBots(data.bots?.length ? data.bots : DEFAULT_BOTS);
         setInbox(data.inbox);
         setRead(data.read ?? {});
         setNotes(data.notes ?? []);
@@ -136,12 +137,12 @@ export function Chat() {
 
   const unread = useMemo(() => {
     const out = {} as Record<BotId, number>;
-    for (const b of BOTS) {
+    for (const b of bots) {
       const seen = lastSeen[b.id] ?? 0;
       out[b.id] = b.id === active && chatOpen ? 0 : (inbox?.[b.id] ?? []).filter((m) => m.from === "bot" && m.ts > seen).length;
     }
     return out;
-  }, [inbox, lastSeen, active, chatOpen]);
+  }, [inbox, lastSeen, active, chatOpen, bots]);
 
   const totalUnread = Object.values(unread).reduce((a, b) => a + b, 0);
   useEffect(() => {
@@ -189,7 +190,7 @@ export function Chat() {
         if (!saved) throw new Error("risposta non valida");
         // Il messaggio ora è salvato sul server: lo mettiamo subito in lista senza aspettare il polling.
         setInbox((prev) =>
-          prev && !prev[bot].some((m) => m.id === saved.id) ? { ...prev, [bot]: [...prev[bot], saved] } : prev,
+          prev && !(prev[bot] ?? []).some((m) => m.id === saved.id) ? { ...prev, [bot]: [...(prev[bot] ?? []), saved] } : prev,
         );
         setPending((p) => p.filter((m) => m.id !== temp.id));
       } catch {
@@ -207,7 +208,7 @@ export function Chat() {
     [send],
   );
 
-  const bot = botById(active);
+  const bot = bots.find((b) => b.id === active) ?? { id: active, name: active };
   const last = messages.at(-1);
   // L'agent passa ogni tanto: "letto" = ha scaricato la bacheca dopo il tuo ultimo messaggio.
   const readAt = read[active] ?? 0;
@@ -217,7 +218,7 @@ export function Chat() {
   const status = agentRead ? "ha letto, sta rispondendo…" : awaitingReply ? "in attesa che passi a leggere" : "agent";
 
   // Bot ordinati per ultima attività (come le chat su WhatsApp); senza messaggi restano in fondo, in ordine.
-  const sortedBots = [...BOTS].sort((a, b) => (inbox?.[b.id]?.at(-1)?.ts ?? 0) - (inbox?.[a.id]?.at(-1)?.ts ?? 0));
+  const sortedBots = [...bots].sort((a, b) => (inbox?.[b.id]?.at(-1)?.ts ?? 0) - (inbox?.[a.id]?.at(-1)?.ts ?? 0));
 
   const title = onNotes ? (
     <>
@@ -269,7 +270,7 @@ export function Chat() {
 
           <div className="mt-4 mb-1 flex items-center justify-between px-3 text-[11px] font-medium tracking-wider text-muted uppercase">
             <span>Bot</span>
-            <span>{BOTS.length}</span>
+            <span>{bots.length}</span>
           </div>
 
           {sortedBots.map((b) => {
@@ -322,7 +323,7 @@ export function Chat() {
         </header>
 
         {onNotes ? (
-          <Notes notes={notes} onChanged={forceRefresh} />
+          <Notes notes={notes} bots={bots} onChanged={forceRefresh} />
         ) : (
           <>
 

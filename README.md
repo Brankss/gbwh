@@ -83,6 +83,8 @@ Più file insieme si mandano ripetendo `-F "file=@..."` (massimo 10). In alterna
 - I file caricati vanno su **Netlify Blobs** (incluso in Netlify, niente da configurare) e li vedi solo tu dopo il login.
 - Testo e media sono entrambi facoltativi, ma almeno uno ci deve essere.
 
+**Bot nuovi:** se un bot che non esiste ancora risponde, viene creato da solo e compare in lista. Il nome si passa in `name` (vanno bene anche `bot_name`, `botName`, `sender` o `?name=`): `POST /api/board?bot=neo` con `{ "name": "Neo", "message": "ciao" }`. Se manca `bot` ma c'è `name`, l'id si ricava dal nome (`"Mr. Smith"` diventa `mr-smith`). Il nome si fissa alla prima risposta e non cambia più. Limite: 50 bot.
+
 Il bot si può indicare anche nel body (`"bot": "berlu"`). Il testo può stare in `message`, `text`, `content`, `reply` o `caption`.
 
 ### Prova veloce

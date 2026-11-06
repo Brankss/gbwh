@@ -1,12 +1,13 @@
 import "server-only";
 import { Redis } from "@upstash/redis";
-import { BOT_IDS, type BotId, type Inbox, type Message, type Note, type ReadAt } from "./bots";
+import { DEFAULT_BOTS, MAX_BOTS, type Bot, type BotId, type Inbox, type Message, type Note, type ReadAt } from "./bots";
 
 // Ultimi N messaggi tenuti per ogni chat.
 const KEEP = 300;
 const REV_KEY = "chat:rev";
 const READ_KEY = "chat:read";
 const NOTES_KEY = "chat:notes";
+const BOTS_KEY = "chat:bots";
 const listKey = (bot: BotId) => `chat:${bot}`;
 
 const url = process.env.KV_REST_API_URL ?? process.env.UPSTASH_REDIS_REST_URL;
@@ -19,13 +20,50 @@ if (!redis && process.env.NODE_ENV === "production") {
 }
 
 // Fallback in memoria per lo sviluppo in locale (sopravvive all'hot reload).
-type Mem = { rev: number; lists: Inbox; read: ReadAt; notes: Record<string, Note> };
+type Mem = { rev: number; lists: Inbox; read: ReadAt; notes: Record<string, Note>; bots: Record<string, Bot> };
 const mem = ((globalThis as { __chatMem?: Mem }).__chatMem ??= {
   rev: 0,
-  lists: Object.fromEntries(BOT_IDS.map((id) => [id, []])) as unknown as Inbox,
+  lists: {},
   read: {},
   notes: {},
+  bots: {},
 });
+mem.bots ??= {};
+
+/** Bot di base + quelli creati in automatico (in ordine di arrivo). */
+export async function getBots(): Promise<Bot[]> {
+  const saved = redis ? ((await redis.hgetall<Record<string, Bot>>(BOTS_KEY)) ?? {}) : mem.bots;
+  const extra = Object.values(saved)
+    .filter((b) => !DEFAULT_BOTS.some((d) => d.id === b.id))
+    .sort((a, b) => (a.createdAt ?? 0) - (b.createdAt ?? 0));
+  return [...DEFAULT_BOTS, ...extra];
+}
+
+/**
+ * Restituisce il bot con quell'id; se non esiste lo crea con il nome dato.
+ * `null` se si è già al tetto massimo di bot.
+ */
+export async function ensureBot(id: BotId, name: string | null): Promise<{ bot: Bot; created: boolean } | null> {
+  const bots = await getBots();
+  const existing = bots.find((b) => b.id === id);
+  if (existing) return { bot: existing, created: false };
+  if (bots.length >= MAX_BOTS) return null;
+
+  // Senza nome usiamo l'id reso leggibile: "mr-smith" -> "Mr smith".
+  const fallback = id.replace(/[-_]+/g, " ").replace(/^./, (c) => c.toUpperCase());
+  const bot: Bot = { id, name: name ?? fallback, auto: true, createdAt: Date.now() };
+  if (redis) {
+    // hsetnx: se due risposte dello stesso bot nuovo arrivano insieme, vince la prima.
+    const p = redis.pipeline();
+    p.hsetnx(BOTS_KEY, id, bot);
+    p.incr(REV_KEY);
+    await p.exec();
+  } else {
+    mem.bots[id] ??= bot;
+    mem.rev++;
+  }
+  return { bot, created: true };
+}
 
 export async function addMessage(msg: Message): Promise<void> {
   if (redis) {
@@ -36,7 +74,7 @@ export async function addMessage(msg: Message): Promise<void> {
     await p.exec();
     return;
   }
-  const list = mem.lists[msg.bot];
+  const list = (mem.lists[msg.bot] ??= []);
   list.push(msg);
   if (list.length > KEEP) list.splice(0, list.length - KEEP);
   mem.rev++;
@@ -48,26 +86,29 @@ export async function getRev(): Promise<number> {
   return mem.rev;
 }
 
-export type Snapshot = { inbox: Inbox; read: ReadAt; notes: Note[] };
+export type Snapshot = { bots: Bot[]; inbox: Inbox; read: ReadAt; notes: Note[] };
 
 const newestFirst = (notes: Note[]) => notes.sort((a, b) => b.ts - a.ts);
 
 /** Messaggi, stato "letto" per bot e annunci: tutto in una botta sola. */
 export async function getSnapshot(): Promise<Snapshot> {
+  const bots = await getBots();
+  const ids = bots.map((b) => b.id);
   if (redis) {
     const p = redis.pipeline();
-    for (const id of BOT_IDS) p.lrange<Message>(listKey(id), 0, -1);
+    for (const id of ids) p.lrange<Message>(listKey(id), 0, -1);
     p.hgetall<Record<string, number>>(READ_KEY);
     p.hgetall<Record<string, Note>>(NOTES_KEY);
     const res = await p.exec<unknown[]>();
-    const inbox = Object.fromEntries(BOT_IDS.map((id, i) => [id, (res[i] as Message[]) ?? []])) as Inbox;
-    const rawRead = (res[BOT_IDS.length] as Record<string, number> | null) ?? {};
+    const inbox: Inbox = Object.fromEntries(ids.map((id, i) => [id, (res[i] as Message[]) ?? []]));
+    const rawRead = (res[ids.length] as Record<string, number> | null) ?? {};
     const read: ReadAt = {};
-    for (const id of BOT_IDS) if (rawRead[id]) read[id] = Number(rawRead[id]);
-    const notes = newestFirst(Object.values((res[BOT_IDS.length + 1] as Record<string, Note> | null) ?? {}));
-    return { inbox, read, notes };
+    for (const id of ids) if (rawRead[id]) read[id] = Number(rawRead[id]);
+    const notes = newestFirst(Object.values((res[ids.length + 1] as Record<string, Note> | null) ?? {}));
+    return { bots, inbox, read, notes };
   }
-  return structuredClone({ inbox: mem.lists, read: mem.read, notes: newestFirst(Object.values(mem.notes)) });
+  const inbox: Inbox = Object.fromEntries(ids.map((id) => [id, mem.lists[id] ?? []]));
+  return structuredClone({ bots, inbox, read: mem.read, notes: newestFirst(Object.values(mem.notes)) });
 }
 
 export async function saveNote(note: Note): Promise<void> {

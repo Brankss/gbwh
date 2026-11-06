@@ -1,17 +1,21 @@
 "use client";
 
-import { useEffect, useId, useRef, useState } from "react";
-import { BOTS, MAX_TEXT, type BotId, type Note } from "@/lib/bots";
+import { createContext, useContext, useEffect, useId, useRef, useState } from "react";
+import { DEFAULT_BOTS, MAX_TEXT, type Bot, type BotId, type Note } from "@/lib/bots";
 import { Avatar, PinIcon, useAutosize } from "./ui";
 
-const ALL: BotId[] = BOTS.map((b) => b.id);
-const nameOf = (id: BotId) => BOTS.find((b) => b.id === id)?.name ?? id;
+// La lista dei bot è dinamica (si allunga quando ne scrive uno nuovo): la passiamo via context.
+const BotsContext = createContext<Bot[]>(DEFAULT_BOTS);
+function useBots() {
+  const bots = useContext(BotsContext);
+  return { bots, all: bots.map((b) => b.id), nameOf: (id: BotId) => bots.find((b) => b.id === id)?.name ?? id };
+}
 const dateFmt = new Intl.DateTimeFormat("it-IT", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
 
 type Api = (method: "POST" | "PATCH" | "DELETE", body?: object, query?: string) => Promise<Note | null>;
 
 /** Bacheca annunci: note che scegli tu quali bot possono leggere. */
-export function Notes({ notes, onChanged }: { notes: Note[] | null; onChanged: () => void }) {
+export function Notes({ notes, bots, onChanged }: { notes: Note[] | null; bots: Bot[]; onChanged: () => void }) {
   const [error, setError] = useState<string | null>(null);
 
   const api: Api = async (method, body, query = "") => {
@@ -33,6 +37,7 @@ export function Notes({ notes, onChanged }: { notes: Note[] | null; onChanged: (
   };
 
   return (
+    <BotsContext.Provider value={bots}>
     <div className="scroll-thin flex-1 overflow-y-auto overscroll-contain">
       <div className="mx-auto max-w-3xl space-y-5 px-4 py-6 pb-28 md:px-6">
         <NewNote api={api} />
@@ -60,12 +65,14 @@ export function Notes({ notes, onChanged }: { notes: Note[] | null; onChanged: (
         )}
       </div>
     </div>
+    </BotsContext.Provider>
   );
 }
 
 function NewNote({ api }: { api: Api }) {
   const [text, setText] = useState("");
-  const [visibleTo, setVisibleTo] = useState<BotId[]>(ALL);
+  const { all } = useBots();
+  const [visibleTo, setVisibleTo] = useState<BotId[]>(all);
   const [busy, setBusy] = useState(false);
   const ref = useRef<HTMLTextAreaElement>(null);
   useAutosize(ref, text, 260);
@@ -193,6 +200,7 @@ function NoteCard({ note, api }: { note: Note; api: Api }) {
 
 /** Chi vede l'annuncio, in sola lettura. */
 function AudienceView({ value }: { value: BotId[] }) {
+  const { nameOf } = useBots();
   if (!value.length) return <p className="text-[11px] text-muted">🔒 Solo tu</p>;
   return (
     <div className="flex flex-wrap items-center gap-1.5 text-[11px]">
@@ -212,6 +220,7 @@ function AudienceView({ value }: { value: BotId[] }) {
  * Si può scrivere per filtrare; ↑ ↓ per muoversi, Invio per scegliere, ⌫ a campo vuoto toglie l'ultimo.
  */
 function AudiencePicker({ value, onChange }: { value: BotId[]; onChange: (v: BotId[]) => void }) {
+  const { bots, all, nameOf } = useBots();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [cursor, setCursor] = useState(0);
@@ -225,7 +234,7 @@ function AudiencePicker({ value, onChange }: { value: BotId[]; onChange: (v: Bot
     if (open) menu.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
   }, [open]);
 
-  const options = BOTS.filter((b) => b.name.toLowerCase().includes(query.trim().toLowerCase()));
+  const options = bots.filter((b) => b.name.toLowerCase().includes(query.trim().toLowerCase()));
   const toggle = (id: BotId) => {
     onChange(value.includes(id) ? value.filter((v) => v !== id) : [...value, id]);
     setQuery("");
@@ -261,7 +270,7 @@ function AudiencePicker({ value, onChange }: { value: BotId[]; onChange: (v: Bot
     <div ref={wrap} className="relative">
       <div className="mb-1.5 flex items-center justify-between text-xs text-muted">
         <span>Chi può vederlo</span>
-        <span>{value.length ? `${value.length} di ${BOTS.length}` : "nessuno = solo tu"}</span>
+        <span>{value.length ? `${value.length} di ${bots.length}` : "nessuno = solo tu"}</span>
       </div>
 
       <div
@@ -327,7 +336,7 @@ function AudiencePicker({ value, onChange }: { value: BotId[]; onChange: (v: Bot
       {open && (
         <div ref={menu} className="matte absolute inset-x-0 top-full z-30 mt-1.5 scroll-mb-6 overflow-hidden rounded-2xl shadow-[0_16px_40px_-12px_rgb(0_0_0/0.9)] animate-pop">
           <div className="flex items-center gap-3 border-b border-line px-3 py-2 text-xs text-muted">
-            <button type="button" onClick={() => onChange(ALL)} className="hover:text-fg">
+            <button type="button" onClick={() => onChange(all)} className="hover:text-fg">
               Tutti
             </button>
             <button type="button" onClick={() => onChange([])} className="hover:text-fg">

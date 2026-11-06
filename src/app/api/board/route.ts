@@ -1,8 +1,8 @@
 import type { NextRequest } from "next/server";
 import { safeEqual } from "@/lib/auth";
-import { BOT_IDS, MAX_TEXT, isBotId, type BotId, type Media, type Message } from "@/lib/bots";
+import { MAX_TEXT, toBotId, toBotName, type BotId, type Media, type Message } from "@/lib/bots";
 import { MAX_UPLOAD, isAllowedMime, saveMedia } from "@/lib/media";
-import { addMessage, getSnapshot, markRead } from "@/lib/store";
+import { addMessage, ensureBot, getSnapshot, markRead } from "@/lib/store";
 
 /**
  * Bacheca pubblica per l'agent. Stesso indirizzo per leggere e per rispondere.
@@ -15,6 +15,9 @@ import { addMessage, getSnapshot, markRead } from "@/lib/store";
  *   `notes` sono gli annunci che hai reso visibili a quel bot (arrivano sempre tutti).
  *   Al giro dopo si passa `since=<cursor>` ricevuto. Senza `bot` arrivano tutti e tre.
  *   Di default solo i messaggi scritti da te; con `&all=1` anche le risposte dei bot (utile come contesto).
+ *
+ * BOT NUOVI: se ?bot= non esiste ancora, alla prima risposta il bot viene creato da solo,
+ *   con il nome passato in "name" (o bot_name / botName / sender, oppure ?name=).
  *
  * RISPONDERE (testo, foto, video):
  *   POST /api/board?bot=berlu   { "message": "ciao", "media": ["https://.../foto.jpg"] }
@@ -39,19 +42,18 @@ export async function GET(request: NextRequest) {
   if (denied) return denied;
 
   const params = request.nextUrl.searchParams;
-  const botParam = params.get("bot")?.toLowerCase();
-  if (botParam && !isBotId(botParam)) return Response.json({ error: "Bot sconosciuto" }, { status: 400 });
-
-  const bots: BotId[] = botParam ? [botParam as BotId] : BOT_IDS;
+  // Un bot che non esiste ancora non è un errore: semplicemente non ha messaggi (si crea alla prima risposta).
+  const botParam = params.get("bot") ? toBotId(params.get("bot")) : null;
   const since = Number(params.get("since")) || 0;
   const all = params.get("all") === "1";
 
   // Preso PRIMA di leggere: tutto quello che c'è nello snapshot è più vecchio di così.
   const readAt = Date.now();
-  const { inbox, read, notes } = await getSnapshot();
+  const { bots: allBots, inbox, read, notes } = await getSnapshot();
+  const bots: BotId[] = botParam ? [botParam] : allBots.map((b) => b.id);
 
   const messages = bots
-    .flatMap((b) => inbox[b])
+    .flatMap((b) => inbox[b] ?? [])
     .filter((m) => m.ts > since && (all || m.from === "me"))
     .sort((a, b) => a.ts - b.ts)
     .map((m) => ({ ...m, at: new Date(m.ts).toISOString() }));
@@ -66,7 +68,7 @@ export async function GET(request: NextRequest) {
 
   // Annunci: sempre tutti quelli visibili a questo bot (sono pochi e possono cambiare).
   const visibleNotes = notes
-    .filter((n) => (botParam ? n.visibleTo.includes(botParam as BotId) : n.visibleTo.length > 0))
+    .filter((n) => (botParam ? n.visibleTo.includes(botParam) : n.visibleTo.length > 0))
     .map(({ id, text, ts, updatedAt, visibleTo }) => ({
       id,
       text,
@@ -131,7 +133,12 @@ async function parseReply(request: NextRequest) {
     for (const f of files) {
       media.push(typeof f === "string" ? await toMedia(f) : await storeFile(await f.arrayBuffer(), f.type.toLowerCase()));
     }
-    return { bot: field("bot"), text: field("message") ?? field("text") ?? field("caption") ?? "", media };
+    return {
+      bot: field("bot"),
+      name: field("name") ?? field("bot_name") ?? field("botName"),
+      text: field("message") ?? field("text") ?? field("caption") ?? "",
+      media,
+    };
   }
 
   const raw = await request.text();
@@ -149,16 +156,18 @@ async function parseReply(request: NextRequest) {
   for (const item of items) media.push(await toMedia(item));
 
   const candidate = body.message ?? body.text ?? body.content ?? body.reply ?? body.caption;
-  return { bot: typeof body.bot === "string" ? body.bot : undefined, text: typeof candidate === "string" ? candidate : "", media };
+  const str = (v: unknown) => (typeof v === "string" ? v : undefined);
+  return {
+    bot: str(body.bot),
+    name: str(body.name) ?? str(body.bot_name) ?? str(body.botName) ?? str(body.sender),
+    text: str(candidate) ?? "",
+    media,
+  };
 }
 
 export async function POST(request: NextRequest) {
   const denied = authError(request);
   if (denied) return denied;
-
-  // Il bot va controllato prima di salvare eventuali file.
-  const queryBot = request.nextUrl.searchParams.get("bot")?.toLowerCase();
-  if (queryBot && !isBotId(queryBot)) return Response.json({ error: "Bot sconosciuto" }, { status: 400 });
 
   let reply: Awaited<ReturnType<typeof parseReply>>;
   try {
@@ -168,15 +177,25 @@ export async function POST(request: NextRequest) {
     throw err;
   }
 
-  const bot = (queryBot ?? reply.bot ?? "").toLowerCase();
-  if (!isBotId(bot)) return Response.json({ error: "Parametro 'bot' mancante o sconosciuto" }, { status: 400 });
+  // Bot: da ?bot= o dal body; se manca l'id ma c'è il nome, l'id si ricava dal nome.
+  const query = request.nextUrl.searchParams;
+  const name = toBotName(query.get("name") ?? reply.name);
+  const bot = toBotId(query.get("bot") ?? reply.bot) ?? toBotId(name);
+  if (!bot) return Response.json({ error: "Manca il bot: passa ?bot=<id> oppure un \"name\"" }, { status: 400 });
 
   const text = reply.text.trim().slice(0, MAX_TEXT);
   if (!text && !reply.media.length) return Response.json({ error: "Messaggio vuoto: manda testo, foto o video" }, { status: 400 });
+
+  // Bot mai visto prima? Lo creiamo adesso, con il nome che si è dato.
+  const known = await ensureBot(bot, name);
+  if (!known) return Response.json({ error: "Troppi bot: limite raggiunto" }, { status: 409 });
 
   const message: Message = { id: crypto.randomUUID(), bot, from: "bot", text, ts: Date.now() };
   if (reply.media.length) message.media = reply.media;
   await addMessage(message);
 
-  return Response.json({ ok: true, id: message.id, media: message.media ?? [] }, { headers: noStore });
+  return Response.json(
+    { ok: true, id: message.id, bot: known.bot, created: known.created, media: message.media ?? [] },
+    { headers: noStore },
+  );
 }

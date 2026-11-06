@@ -1,14 +1,15 @@
-import { MAX_TEXT, isBotId, type BotId, type Note } from "@/lib/bots";
-import { deleteNote, getNote, saveNote } from "@/lib/store";
+import { MAX_TEXT, type BotId, type Note } from "@/lib/bots";
+import { deleteNote, getBots, getNote, saveNote } from "@/lib/store";
 
 // Annunci in bacheca. Solo per te (protetto da password via proxy.ts);
 // i bot li leggono da GET /api/board, ognuno solo quelli visibili a lui.
 
 const bad = (error: string, status = 400) => Response.json({ error }, { status });
 
-function parseVisibleTo(value: unknown): BotId[] | null {
+async function parseVisibleTo(value: unknown): Promise<BotId[] | null> {
   if (!Array.isArray(value)) return null;
-  return [...new Set(value.filter(isBotId))];
+  const ids = new Set((await getBots()).map((b) => b.id));
+  return [...new Set(value.filter((v): v is BotId => typeof v === "string" && ids.has(v)))];
 }
 
 export async function POST(request: Request) {
@@ -20,7 +21,7 @@ export async function POST(request: Request) {
   const note: Note = {
     id: crypto.randomUUID(),
     text,
-    visibleTo: parseVisibleTo(body?.visibleTo) ?? [],
+    visibleTo: (await parseVisibleTo(body?.visibleTo)) ?? [],
     ts: Date.now(),
   };
   await saveNote(note);
@@ -39,7 +40,7 @@ export async function PATCH(request: Request) {
     note.text = text;
   }
   if (body.visibleTo !== undefined) {
-    const visibleTo = parseVisibleTo(body.visibleTo);
+    const visibleTo = await parseVisibleTo(body.visibleTo);
     if (!visibleTo) return bad("visibleTo deve essere una lista di bot");
     note.visibleTo = visibleTo;
   }
