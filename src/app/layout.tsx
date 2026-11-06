@@ -6,8 +6,10 @@ const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
 const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Chat",
-  description: "Chat privata con Berlusc, Syrup e Aurelio",
+  title: "Hub",
+  description: "Il tuo hub personale: agenti, progetti, dropshipping, media e modelli AI.",
+  applicationName: "Hub",
+  appleWebApp: { capable: true, title: "Hub", statusBarStyle: "black" },
   robots: { index: false, follow: false },
 };
 
@@ -15,7 +17,8 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   interactiveWidget: "resizes-content",
-  themeColor: "#16161a",
+  themeColor: "#030303",
+  viewportFit: "cover",
   colorScheme: "dark",
 };
 
