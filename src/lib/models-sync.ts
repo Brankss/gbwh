@@ -1,4 +1,5 @@
 import "server-only";
+import { MODELS_SEED } from "@/data/models-seed";
 import { redis } from "./redis";
 import {
   guessOpen,
@@ -13,9 +14,10 @@ import {
 const KEY = "models:data";
 const mem = globalThis as { __models?: ModelsData };
 
-export async function getModelsData(): Promise<ModelsData | null> {
-  if (redis) return (await redis.get<ModelsData>(KEY)) ?? null;
-  return mem.__models ?? null;
+/** Dati salvati (sync o agenti); se non ce ne sono ancora, il seed raccolto a mano. */
+export async function getModelsData(): Promise<ModelsData> {
+  const saved = redis ? await redis.get<ModelsData>(KEY) : mem.__models;
+  return saved ?? MODELS_SEED;
 }
 
 async function saveModelsData(data: ModelsData) {
@@ -119,8 +121,7 @@ export async function syncFromArtificialAnalysis(): Promise<ModelsData> {
 
 /** Un agent (es. Hermes) carica lui una categoria già pronta. */
 export async function pushCategory(kind: ModelKind, models: ModelEntry[], source: string): Promise<ModelsData> {
-  const empty: ModelCategory = { benchmarks: [], models: [] };
-  const current = (await getModelsData()) ?? { updatedAt: 0, source, llm: empty, image: empty, video: empty };
+  const current = await getModelsData();
   const normalized = models.map((m) => {
     const org = normalizeOrg(m.org);
     const guessed = m.open === undefined ? guessOpen(m.name, org) : undefined;
