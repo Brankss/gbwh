@@ -86,7 +86,7 @@ export function ProjectForm({ project, onClose, onSaved }: { project?: Project; 
       <Field label="Link" hint="uno per riga">
         <textarea className={`${inputClass} min-h-20 resize-y font-mono text-sm`} value={form.links} onChange={set("links")} placeholder={"Store https://…\nRepo https://github.com/…"} />
       </Field>
-      {error && <p className="text-sm text-red-400">{error}</p>}
+      {error && <p className="text-sm text-[#ec8585]">{error}</p>}
     </Modal>
   );
 }

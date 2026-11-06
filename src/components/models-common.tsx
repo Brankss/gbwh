@@ -59,7 +59,7 @@ export function SourceBar({ data, configured, onSynced }: { data: ModelsData | n
           {busy ? "Aggiorno…" : "Aggiorna"}
         </Button>
       )}
-      {error && <span className="text-red-400">{error}</span>}
+      {error && <span className="text-[#ec8585]">{error}</span>}
     </div>
   );
 }
