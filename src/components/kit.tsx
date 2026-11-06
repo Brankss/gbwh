@@ -8,10 +8,10 @@ import { MenuButton } from "./shell";
 
 export function PageHeader({ title, subtitle, actions, back }: { title: string; subtitle?: string; actions?: ReactNode; back?: ReactNode }) {
   return (
-    <header className="flex items-center gap-2 border-b border-line bg-bg/80 py-2.5 pr-3 pl-2 backdrop-blur-xl md:px-6 md:py-3.5">
+    <header className="glass flex items-center gap-2 border-b border-white/[0.06] py-2.5 pr-3 pl-2 md:px-6 md:py-3.5">
       {back ?? <MenuButton />}
       <div className="min-w-0 flex-1">
-        <h1 className="truncate text-lg font-semibold tracking-tight">{title}</h1>
+        <h1 className="chrome-text truncate text-xl font-bold tracking-tight md:text-2xl">{title}</h1>
         {subtitle && <p className="truncate text-xs text-muted">{subtitle}</p>}
       </div>
       {actions && <div className="flex shrink-0 items-center gap-2">{actions}</div>}
@@ -32,7 +32,7 @@ export function Button({
   children,
   onClick,
   icon,
-  variant = "gloss",
+  variant = "chrome",
   type = "button",
   disabled,
   small,
@@ -40,23 +40,25 @@ export function Button({
   children?: ReactNode;
   onClick?: () => void;
   icon?: IconName;
-  variant?: "gloss" | "ghost" | "danger";
+  variant?: "chrome" | "gloss" | "ghost" | "danger";
   type?: "button" | "submit";
   disabled?: boolean;
   small?: boolean;
 }) {
   const look =
-    variant === "gloss"
-      ? "gloss"
-      : variant === "danger"
+    variant === "chrome"
+      ? "chrome hover:brightness-105"
+      : variant === "gloss"
+        ? "gloss"
+        : variant === "danger"
         ? "border border-red-500/30 text-red-400 hover:bg-red-500/10"
-        : "border border-line text-muted hover:bg-surface-2 hover:text-fg";
+        : "border border-white/10 text-muted hover:border-white/20 hover:bg-white/5 hover:text-fg";
   return (
     <button
       type={type}
       onClick={onClick}
       disabled={disabled}
-      className={`inline-flex items-center justify-center gap-1.5 rounded-full font-medium transition-all active:scale-95 disabled:opacity-40 ${
+      className={`inline-flex items-center justify-center gap-1.5 rounded-full font-semibold transition-all active:scale-95 disabled:opacity-40 ${
         small ? "px-3 py-1 text-xs" : "px-4 py-2 text-sm"
       } ${look}`}
     >
@@ -76,7 +78,7 @@ export function Modal({ title, onClose, children, footer }: { title: string; onC
   return (
     <div className="fixed inset-0 z-40 flex items-end justify-center md:items-center md:p-6" role="dialog" aria-modal aria-label={title}>
       <button aria-label="Chiudi" onClick={onClose} className="absolute inset-0 bg-black/70 backdrop-blur-sm animate-pop" />
-      <div className="matte relative flex max-h-[92dvh] w-full max-w-xl flex-col rounded-t-3xl animate-pop md:rounded-3xl">
+      <div className="card relative flex max-h-[92dvh] w-full max-w-xl flex-col rounded-b-none! animate-pop md:rounded-b-[1.5rem]!">
         <div className="flex items-center gap-2 border-b border-line px-5 py-3.5">
           <h2 className="flex-1 truncate font-semibold">{title}</h2>
           <button onClick={onClose} aria-label="Chiudi" className="grid size-8 place-items-center rounded-full text-muted hover:bg-surface hover:text-fg">
@@ -133,11 +135,11 @@ export function Pills<T extends string>({ value, onChange, options }: { value: T
           onClick={() => onChange(o.value)}
           aria-pressed={o.value === value}
           className={`shrink-0 rounded-full px-3 py-1 text-sm whitespace-nowrap transition-all ${
-            o.value === value ? "bg-white font-medium text-black" : "border border-line text-muted hover:text-fg"
+            o.value === value ? "chrome font-semibold" : "border border-white/10 text-muted hover:border-white/20 hover:text-fg"
           }`}
         >
           {o.label}
-          {o.count !== undefined && <span className={`ml-1 text-xs ${o.value === value ? "text-black/60" : ""}`}>{o.count}</span>}
+          {o.count !== undefined && <span className={`ml-1 text-xs ${o.value === value ? "text-black/55" : ""}`}>{o.count}</span>}
         </button>
       ))}
     </div>
@@ -147,7 +149,7 @@ export function Pills<T extends string>({ value, onChange, options }: { value: T
 export function Empty({ icon, title, children }: { icon: IconName; title: string; children?: ReactNode }) {
   return (
     <div className="flex flex-col items-center gap-3 py-14 text-center animate-pop">
-      <span className="orb grid size-14 place-items-center rounded-full">
+      <span className="orb blob grid size-16 place-items-center">
         <Icon name={icon} className="size-6" />
       </span>
       <p className="font-medium">{title}</p>
@@ -170,8 +172,8 @@ export function Section({ title, action, children }: { title: string; action?: R
 
 export function Progress({ value }: { value: number }) {
   return (
-    <div className="h-1.5 w-full overflow-hidden rounded-full bg-surface-2" role="progressbar" aria-valuenow={value} aria-valuemin={0} aria-valuemax={100}>
-      <div className="h-full rounded-full bg-white transition-[width] duration-500" style={{ width: `${Math.max(0, Math.min(100, value))}%` }} />
+    <div className="h-1.5 w-full overflow-hidden rounded-full bg-white/[0.06]" role="progressbar" aria-valuenow={value} aria-valuemin={0} aria-valuemax={100}>
+      <div className="chrome h-full rounded-full border-0! transition-[width] duration-700" style={{ width: `${Math.max(0, Math.min(100, value))}%` }} />
     </div>
   );
 }
@@ -180,7 +182,7 @@ export function Stat({ label, value, hint }: { label: string; value: ReactNode; 
   return (
     <div className="matte rounded-2xl p-3.5">
       <div className="text-xs text-muted">{label}</div>
-      <div className="mt-1 text-xl font-semibold tracking-tight tabular-nums">{value}</div>
+      <div className="mt-1 text-2xl font-bold tracking-tight tabular-nums">{value}</div>
       {hint && <div className="mt-0.5 text-xs text-muted">{hint}</div>}
     </div>
   );
@@ -189,7 +191,7 @@ export function Stat({ label, value, hint }: { label: string; value: ReactNode; 
 export function Card({ children, onClick, className = "" }: { children: ReactNode; onClick?: () => void; className?: string }) {
   const base = `matte block w-full rounded-[1.25rem] p-4 text-left ${className}`;
   return onClick ? (
-    <button onClick={onClick} className={`${base} transition-colors hover:border-[#2a2a2a] hover:bg-[#171717]`}>
+    <button onClick={onClick} className={`${base} transition-all hover:-translate-y-0.5 hover:shadow-[0_18px_40px_-20px_rgb(255_255_255/0.12)]`}>
       {children}
     </button>
   ) : (

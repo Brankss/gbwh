@@ -7,6 +7,7 @@ import { logout } from "@/app/actions";
 import { useApi } from "@/lib/client";
 import type { Alert } from "@/lib/schemas";
 import { Icon, type IconName } from "./icons";
+import { Liquid } from "./liquid";
 
 // Struttura dell'hub: barra laterale a icone su desktop, menu a scomparsa su mobile.
 
@@ -66,7 +67,7 @@ export function HubShell({ children }: { children: ReactNode }) {
       const active = isActive(pathname, item.href);
       const badge = item.href === "/annunci" && unread > 0 && (
         <span
-          className={`grid h-5 min-w-5 place-items-center rounded-full bg-white px-1.5 text-[11px] font-semibold text-black ${
+          className={`chrome grid h-5 min-w-5 place-items-center rounded-full px-1.5 text-[11px] font-bold ${
             variant === "rail" ? "absolute top-1 right-2" : "ml-auto"
           }`}
         >
@@ -81,8 +82,16 @@ export function HubShell({ children }: { children: ReactNode }) {
             aria-current={active ? "page" : undefined}
             className={`group relative flex flex-col items-center gap-1 rounded-2xl px-1 py-2 transition-colors ${active ? "text-fg" : "text-muted hover:text-fg"}`}
           >
-            <span className={`grid size-10 place-items-center rounded-2xl transition-colors ${active ? "gloss" : "group-hover:bg-surface-2"}`}>
-              <Icon name={item.icon} />
+            <span className="relative grid size-11 place-items-center">
+              {/* Voce attiva: goccia d'argento liquido che si deforma dietro l'icona */}
+              <span
+                className={`absolute inset-0 transition-all duration-500 ${
+                  active ? "chrome blob scale-100 opacity-100" : "blob scale-50 bg-surface-2 opacity-0 group-hover:scale-90 group-hover:opacity-100"
+                }`}
+              />
+              <span className={`relative ${active ? "text-black" : ""}`}>
+                <Icon name={item.icon} />
+              </span>
             </span>
             <span className="text-[10px] font-medium">{item.label}</span>
             {badge}
@@ -96,7 +105,7 @@ export function HubShell({ children }: { children: ReactNode }) {
           onClick={onNavigate}
           aria-current={active ? "page" : undefined}
           className={`flex items-center gap-3 rounded-2xl px-3 py-3 text-[15px] transition-colors ${
-            active ? "gloss text-fg" : "border border-transparent text-muted hover:bg-surface-2 hover:text-fg"
+            active ? "chrome font-medium" : "border border-transparent text-muted hover:bg-surface-2 hover:text-fg"
           }`}
         >
           <Icon name={item.icon} />
@@ -108,9 +117,15 @@ export function HubShell({ children }: { children: ReactNode }) {
 
   return (
     <MenuContext.Provider value={() => setDrawer(true)}>
-      <div className="flex h-dvh overflow-hidden">
+      <div className="relative flex h-dvh overflow-hidden">
+        {/* Mercurio nero sullo sfondo, dietro a tutto */}
+        <Liquid />
+
         {/* Desktop: barra a icone */}
-        <nav className="scroll-thin hidden w-[76px] shrink-0 flex-col gap-1 overflow-y-auto border-r border-line bg-surface px-1.5 py-4 md:flex">
+        <nav className="glass scroll-thin relative z-10 hidden w-[80px] shrink-0 flex-col gap-1 overflow-y-auto border-r border-white/[0.06] px-1.5 py-4 md:flex">
+          <div className="mb-3 grid place-items-center">
+            <span className="chrome-text text-xl font-black tracking-tighter">B</span>
+          </div>
           {links("rail")}
           <form action={logout} className="mt-auto">
             <button title="Esci" className="flex w-full flex-col items-center gap-1 py-2 text-muted transition-colors hover:text-fg">
@@ -120,15 +135,15 @@ export function HubShell({ children }: { children: ReactNode }) {
           </form>
         </nav>
 
-        <div className="flex min-w-0 flex-1 flex-col">{children}</div>
+        <div className="relative z-10 flex min-w-0 flex-1 flex-col">{children}</div>
 
         {/* Mobile: menu a scomparsa */}
         {drawer && (
           <div className="fixed inset-0 z-40 md:hidden" role="dialog" aria-modal>
             <button aria-label="Chiudi menu" className="absolute inset-0 bg-black/70 backdrop-blur-sm animate-pop" onClick={() => setDrawer(false)} />
-            <div className="matte absolute inset-y-0 left-0 flex w-[min(80vw,300px)] flex-col gap-1 rounded-r-3xl p-3 pt-5 animate-pop">
+            <div className="card absolute inset-y-0 left-0 flex w-[min(80vw,300px)] flex-col gap-1 rounded-l-none! p-3 pt-5 animate-pop">
               <div className="mb-3 flex items-center justify-between px-2">
-                <span className="text-lg font-semibold tracking-tight">Hub</span>
+                <span className="chrome-text text-2xl font-black tracking-tighter">Hub</span>
                 <button onClick={() => setDrawer(false)} aria-label="Chiudi" className="grid size-9 place-items-center rounded-full text-muted hover:text-fg">
                   <Icon name="close" />
                 </button>

@@ -244,7 +244,7 @@ export function Chat() {
     <div className="flex min-h-0 flex-1 overflow-hidden">
       {/* Lista chat: sidebar su desktop, home su mobile */}
       <aside
-        className={`${mobileDetail ? "hidden" : "flex"} w-full flex-col bg-surface md:flex md:w-72 md:shrink-0 md:border-r md:border-line`}
+        className={`${mobileDetail ? "hidden" : "flex"} w-full flex-col bg-black/40 md:flex md:w-72 md:shrink-0 md:border-r md:border-white/[0.06]`}
       >
         <div className="flex items-center gap-2 px-2 pt-3 pb-3 md:px-5 md:pt-5">
           <MenuButton />
@@ -304,7 +304,7 @@ export function Chat() {
       </aside>
 
       <main className={`${mobileDetail ? "flex" : "hidden"} min-w-0 flex-1 flex-col md:flex`}>
-        <header className="border-b border-line bg-bg/80 backdrop-blur-xl">
+        <header className="glass border-b border-white/[0.06]">
           {/* Mobile: indietro alla lista */}
           <div className="flex items-center gap-2 py-2 pr-4 pl-1.5 md:hidden">
             <button
@@ -632,7 +632,7 @@ function Composer({ name, onSend }: { name: string; onSend: (text: string) => vo
           type="submit"
           disabled={!text.trim()}
           aria-label="Invia"
-          className="orb grid size-9 shrink-0 place-items-center rounded-full transition-all enabled:hover:brightness-150 enabled:active:scale-90 disabled:scale-90 disabled:opacity-30"
+          className="chrome grid size-9 shrink-0 place-items-center rounded-full transition-all enabled:active:scale-90 disabled:scale-90 disabled:opacity-25"
         >
           <svg viewBox="0 0 24 24" className="size-4.5" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
             <path d="M12 19V5M5 12l7-7 7 7" />
@@ -647,7 +647,7 @@ function Composer({ name, onSend }: { name: string; onSend: (text: string) => vo
 
 function Badge({ count }: { count: number }) {
   return (
-    <span className="grid h-5 min-w-5 place-items-center rounded-full bg-white px-1.5 text-[11px] font-semibold text-black animate-pop">
+    <span className="chrome grid h-5 min-w-5 place-items-center rounded-full px-1.5 text-[11px] font-bold animate-pop">
       {count > 99 ? "99+" : count}
     </span>
   );

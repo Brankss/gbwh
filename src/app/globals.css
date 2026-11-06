@@ -1,15 +1,32 @@
 @import "tailwindcss";
 
-/* Palette: nero opaco (superfici) + nero lucido (elementi in evidenza). */
+/*
+ * Materiali: nero profondo, nero lucido, e argento liquido (mercurio).
+ * Forme organiche che si deformano piano: liquide, "simbionti".
+ */
 :root {
-  --bg: #070707;
-  --surface: #0d0d0d;
-  --surface-2: #141414;
-  --border: #1d1d1d;
+  --bg: #030303;
+  --surface: #0a0a0a;
+  --surface-2: #101010;
+  --border: #1b1b1b;
   --text: #ededed;
-  --muted: #7a7a7a;
-  --ring: rgb(255 255 255 / 0.12);
-  /* Grana finissima per l'effetto opaco. */
+  --muted: #7d7d7d;
+  --ring: rgb(220 220 220 / 0.14);
+
+  /* Argento liquido: fasce chiare e scure come un riflesso su metallo. */
+  --chrome: linear-gradient(
+    115deg,
+    #5f5f5f 0%,
+    #f4f4f4 16%,
+    #9d9d9d 30%,
+    #ffffff 44%,
+    #6f6f6f 58%,
+    #e2e2e2 74%,
+    #858585 100%
+  );
+  /* Bordo metallico sottile: luce in alto a sinistra, buio al centro, ritorno di luce in basso. */
+  --rim: linear-gradient(140deg, rgb(255 255 255 / 0.28), rgb(255 255 255 / 0.04) 38%, rgb(255 255 255 / 0.02) 62%, rgb(255 255 255 / 0.16));
+
   --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.5'/%3E%3C/svg%3E");
   color-scheme: dark;
 }
@@ -30,12 +47,12 @@ html {
 }
 
 body {
-  background: var(--bg);
+  background: radial-gradient(120% 80% at 50% -10%, #0d0d0d 0%, var(--bg) 60%) fixed, var(--bg);
   color: var(--text);
   font-family: var(--font-sans);
 }
 
-/* Grana sopra tutto lo sfondo, non intercetta i click. */
+/* Grana sopra tutto, non intercetta i click. */
 body::before {
   content: "";
   position: fixed;
@@ -48,80 +65,119 @@ body::before {
 }
 
 ::selection {
-  background: rgb(255 255 255 / 0.2);
+  background: rgb(255 255 255 / 0.22);
 }
 
 @layer components {
-  /* Nero opaco: piatto, nessun riflesso. */
+  /* Nero opaco con bordo metallico sottile. */
   .matte {
-    background: var(--surface-2);
-    border: 1px solid var(--border);
+    background:
+      linear-gradient(rgb(13 13 13 / 0.92), rgb(9 9 9 / 0.92)) padding-box,
+      var(--rim) border-box;
+    border: 1px solid transparent;
   }
 
-  /* Nero lucido: gradiente scuro, filo di luce in alto e riflesso morbido. */
+  /* Nero lucido: profondo, con filo d'argento e riflesso morbido in alto. */
   .gloss {
     position: relative;
     isolation: isolate;
-    background: linear-gradient(180deg, #2b2b2b 0%, #121212 48%, #040404 100%);
-    border: 1px solid #262626;
+    background:
+      linear-gradient(180deg, #262626 0%, #0f0f0f 46%, #030303 100%) padding-box,
+      linear-gradient(160deg, rgb(255 255 255 / 0.45), rgb(255 255 255 / 0.06) 40%, rgb(255 255 255 / 0.03) 70%, rgb(255 255 255 / 0.2)) border-box;
+    border: 1px solid transparent;
     box-shadow:
-      inset 0 1px 0 rgb(255 255 255 / 0.16),
-      inset 0 -1px 0 rgb(0 0 0 / 0.7),
-      0 10px 28px -12px rgb(0 0 0 / 0.9);
+      inset 0 1px 0 rgb(255 255 255 / 0.12),
+      0 10px 30px -12px rgb(0 0 0 / 0.95);
     color: #f5f5f5;
   }
   .gloss::after {
     content: "";
     position: absolute;
-    inset: 1px 1px 50% 1px;
+    inset: 1px 1px 52% 1px;
     z-index: -1;
     border-radius: inherit;
-    border-bottom-left-radius: 40% 30%;
-    border-bottom-right-radius: 40% 30%;
-    background: linear-gradient(180deg, rgb(255 255 255 / 0.1), rgb(255 255 255 / 0.01));
+    border-bottom-left-radius: 46% 34%;
+    border-bottom-right-radius: 46% 34%;
+    background: linear-gradient(180deg, rgb(255 255 255 / 0.11), rgb(255 255 255 / 0));
     pointer-events: none;
   }
 
-  /* Sfera lucida per gli avatar. */
-  .orb {
-    background: radial-gradient(circle at 32% 26%, #5a5a5a 0%, #1c1c1c 38%, #050505 70%, #000 100%);
+  /* Argento liquido: per le azioni principali, badge e indicatori. Il riflesso scorre piano. */
+  .chrome {
+    background: var(--chrome);
+    background-size: 240% 100%;
+    animation: sheen 9s ease-in-out infinite alternate;
+    color: #0a0a0a;
+    border: 1px solid rgb(255 255 255 / 0.55);
     box-shadow:
-      inset 0 -2px 4px rgb(0 0 0 / 0.8),
-      0 0 0 1px #262626,
-      0 4px 12px -4px rgb(0 0 0 / 0.9);
-    color: #f0f0f0;
+      inset 0 1px 0 rgb(255 255 255 / 0.95),
+      inset 0 -2px 5px rgb(0 0 0 / 0.35),
+      0 8px 24px -10px rgb(220 220 220 / 0.35);
+    text-shadow: 0 1px 0 rgb(255 255 255 / 0.5);
+  }
+
+  .chrome-text {
+    background: var(--chrome);
+    background-size: 240% 100%;
+    animation: sheen 12s ease-in-out infinite alternate;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  /* Goccia di mercurio nero per gli avatar. */
+  .orb {
+    background:
+      radial-gradient(70% 45% at 34% 22%, rgb(255 255 255 / 0.55) 0%, rgb(255 255 255 / 0.08) 38%, transparent 60%),
+      radial-gradient(circle at 60% 120%, #4a4a4a 0%, transparent 55%),
+      radial-gradient(circle at 50% 50%, #161616 0%, #050505 70%, #000 100%);
+    box-shadow:
+      inset 0 -2px 5px rgb(0 0 0 / 0.9),
+      0 0 0 1px rgb(255 255 255 / 0.12),
+      0 6px 16px -6px rgb(0 0 0 / 0.95);
+    color: #f2f2f2;
+  }
+
+  /* Forma organica che si deforma lentamente. */
+  .blob {
+    border-radius: 42% 58% 63% 37% / 41% 44% 56% 59%;
+    animation: morph 11s ease-in-out infinite;
   }
 
   .card {
-    background: linear-gradient(180deg, #141414, #0a0a0a);
-    border: 1px solid var(--border);
-    border-radius: 1.25rem;
-    box-shadow:
-      inset 0 1px 0 rgb(255 255 255 / 0.06),
-      0 24px 60px -20px rgb(0 0 0 / 0.9);
+    background:
+      linear-gradient(180deg, rgb(16 16 16 / 0.82), rgb(8 8 8 / 0.82)) padding-box,
+      var(--rim) border-box;
+    border: 1px solid transparent;
+    border-radius: 1.5rem;
+    box-shadow: 0 30px 80px -24px rgb(0 0 0 / 0.95);
+    -webkit-backdrop-filter: blur(18px) saturate(120%);
+    backdrop-filter: blur(18px) saturate(120%);
   }
 
   .field {
-    background: var(--surface-2);
+    background: rgb(16 16 16 / 0.9);
     border: 1px solid var(--border);
     border-radius: 0.875rem;
     padding: 0.7rem 0.9rem;
     outline: none;
-    transition: border-color 0.15s, box-shadow 0.15s;
+    transition: border-color 0.2s, box-shadow 0.2s;
   }
   .field:focus {
-    border-color: #2e2e2e;
-    box-shadow: 0 0 0 4px var(--ring);
+    border-color: #3a3a3a;
+    box-shadow:
+      0 0 0 4px var(--ring),
+      inset 0 1px 0 rgb(255 255 255 / 0.06);
   }
 
   .btn-primary {
-    border-radius: 0.875rem;
-    padding: 0.7rem 1rem;
-    font-weight: 500;
+    border-radius: 999px;
+    padding: 0.75rem 1rem;
+    font-weight: 600;
     transition: transform 0.15s, opacity 0.15s, filter 0.15s;
   }
   .btn-primary:hover {
-    filter: brightness(1.25);
+    filter: brightness(1.08);
   }
   .btn-primary:active {
     transform: scale(0.98);
@@ -132,7 +188,134 @@ body::before {
 
   .scroll-thin {
     scrollbar-width: thin;
-    scrollbar-color: #222 transparent;
+    scrollbar-color: #262626 transparent;
+  }
+
+  /* Vetro scuro per barre e intestazioni sopra il mercurio. */
+  .glass {
+    background: rgb(5 5 5 / 0.62);
+    -webkit-backdrop-filter: blur(20px) saturate(130%);
+    backdrop-filter: blur(20px) saturate(130%);
+  }
+}
+
+/* ---------- Mercurio (components/liquid.tsx + liquid-gl.ts) ---------- */
+
+.liquid {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+.liquid-backdrop {
+  z-index: 0;
+  opacity: 0.8;
+}
+.liquid-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+/* Riserva SVG: si vede solo se WebGL non è disponibile, ed è ferma (nessun costo continuo). */
+.liquid-fallback {
+  display: none;
+  position: absolute;
+  inset: 0;
+}
+.liquid[data-gl="off"] .liquid-fallback {
+  display: block;
+}
+.liquid[data-gl="off"] .liquid-canvas {
+  display: none;
+}
+.liquid-fallback > div {
+  position: absolute;
+  inset: 0;
+}
+.liquid-fallback svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.liquid-fallback .lq,
+.liquid-fallback .lq-lash {
+  animation: none !important;
+}
+.lq {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+.lq-1 {
+  animation: drift-1 16s ease-in-out infinite;
+}
+.lq-2 {
+  animation: drift-2 21s ease-in-out infinite;
+}
+.lq-3 {
+  animation: drift-3 18s ease-in-out infinite;
+}
+.lq-4 {
+  animation: drift-1 13s ease-in-out infinite reverse;
+}
+.lq-lash {
+  transform-box: view-box;
+  animation: lash 10s ease-in-out infinite;
+}
+
+@keyframes drift-1 {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+  50% {
+    transform: translate(70px, 45px) scale(1.12);
+  }
+}
+@keyframes drift-2 {
+  0%,
+  100% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+  50% {
+    transform: translate(-90px, 35px) rotate(30deg);
+  }
+}
+@keyframes drift-3 {
+  0%,
+  100% {
+    transform: translate(0, 0);
+  }
+  50% {
+    transform: translate(40px, -80px);
+  }
+}
+@keyframes lash {
+  0%,
+  100% {
+    transform: rotate(-8deg) scale(0.86);
+  }
+  50% {
+    transform: rotate(12deg) scale(1.08);
+  }
+}
+@keyframes sheen {
+  from {
+    background-position: 0% 50%;
+  }
+  to {
+    background-position: 100% 50%;
+  }
+}
+@keyframes morph {
+  0%,
+  100% {
+    border-radius: 42% 58% 63% 37% / 41% 44% 56% 59%;
+  }
+  33% {
+    border-radius: 58% 42% 38% 62% / 55% 37% 63% 45%;
+  }
+  66% {
+    border-radius: 37% 63% 51% 49% / 38% 62% 38% 62%;
   }
 }
 
@@ -172,6 +355,7 @@ html[data-nf-badge] .composer-dock {
   *::before,
   *::after {
     animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
 }
