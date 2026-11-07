@@ -17,6 +17,7 @@ export const NAV: { href: string; label: string; icon: IconName }[] = [
   { href: "/annunci", label: "Annunci", icon: "bell" },
   { href: "/progetti", label: "Progetti", icon: "folder" },
   { href: "/dropshipping", label: "Dropship", icon: "cart" },
+  { href: "/ugc", label: "UGC Factory", icon: "film" },
   { href: "/media", label: "Media", icon: "image" },
   { href: "/agenti", label: "Agenti", icon: "chat" },
   { href: "/modelli", label: "Modelli AI", icon: "chart" },

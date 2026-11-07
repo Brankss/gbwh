@@ -106,7 +106,7 @@ function explain(e: unknown): string {
  */
 export async function wakeBot(
   botId: string,
-  what: { kind: "messaggio" | "nota" | "manuale" | "calendario"; text: string },
+  what: { kind: "messaggio" | "nota" | "manuale" | "calendario" | "ugc"; text: string },
   opts: { force?: boolean } = {},
 ): Promise<WakeResult> {
   if (!wakeConfigured()) return "skipped-not-configured";
@@ -127,10 +127,18 @@ export async function wakeBot(
           ? "Branko ti chiede di controllare l'hub."
           : what.kind === "calendario"
             ? "Sei il gestore del calendario e c'è una richiesta nuova:"
-            : "Branko ti ha scritto:";
-    const subject = { nota: "Nuova nota", manuale: "Sveglia", calendario: "Richiesta per il calendario", messaggio: "Nuovo messaggio" }[what.kind];
+            : what.kind === "ugc"
+              ? "UGC Factory: c'è un passo della catena che tocca a te."
+              : "Branko ti ha scritto:";
+    const subject = { nota: "Nuova nota", manuale: "Sveglia", calendario: "Richiesta per il calendario", ugc: "Lavoro nella UGC Factory", messaggio: "Nuovo messaggio" }[what.kind];
     const steps =
-      what.kind === "calendario"
+      what.kind === "ugc"
+        ? [
+            "Prendi il lavoro dalla tua coda (con il tuo token):",
+            `GET ${site}/api/agent/ugc/queue?agent=${botId}`,
+            `Istruzioni complete: GET ${site}/api/agent/ugc`,
+          ]
+        : what.kind === "calendario"
         ? [
             "Leggi le richieste in attesa e decidi (con il tuo token):",
             `GET   ${site}/api/agent/calendar/requests`,
