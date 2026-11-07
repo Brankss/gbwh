@@ -129,6 +129,17 @@ export function CalendarApp() {
       : `${+a.slice(8)} ${MONTHS_SHORT[+a.slice(5, 7) - 1]} – ${+b.slice(8)} ${MONTHS_SHORT[+b.slice(5, 7) - 1]} ${b.slice(0, 4)}`;
   })();
   const isNowVisible = days.includes(today) && (view !== "month" || anchor.slice(0, 7) === today.slice(0, 7));
+  const atToday = view === "day" ? anchor === today : isNowVisible;
+  const shortLabel =
+    view === "day"
+      ? anchor === addDays(today, 1)
+        ? "Domani"
+        : anchor === addDays(today, -1)
+          ? "Ieri"
+          : dayLabel(anchor)
+      : view === "week"
+        ? `${+days[0].slice(8)}–${+days[6].slice(8)} ${MONTHS_SHORT[+days[6].slice(5, 7) - 1]}`
+        : `${MONTHS_SHORT[+anchor.slice(5, 7) - 1]} ${anchor.slice(2, 4)}`;
 
   /* ---------- Azioni ---------- */
   const openNew = (patch: Partial<Draft>, from?: EventFields) =>
@@ -283,10 +294,12 @@ export function CalendarApp() {
               <NavButton label="Indietro" icon="back" onClick={() => shift(-1)} />
               <button
                 onClick={() => setAnchor(today)}
-                disabled={isNowVisible && anchor === today}
-                className="press h-8 rounded-xl px-2 text-[13px] font-semibold disabled:text-muted max-[380px]:px-1 sm:px-3"
+                disabled={atToday}
+                title={atToday ? undefined : "Torna a oggi"}
+                className={`press h-8 min-w-[3.25rem] rounded-xl px-2 text-[13px] font-semibold whitespace-nowrap tabular-nums max-[380px]:px-1 sm:px-3 ${atToday ? "" : "text-[#d6d6d6]"}`}
               >
-                Oggi
+                {/* Mostra quello che stai guardando; "Oggi" solo quando ci sei sopra. Toccalo per tornare a oggi. */}
+                {atToday ? "Oggi" : shortLabel}
               </button>
               <NavButton label="Avanti" icon="forward" onClick={() => shift(1)} />
             </div>

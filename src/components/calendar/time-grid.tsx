@@ -335,7 +335,7 @@ export function TimeGrid(p: TimeGridProps) {
           </div>
         </div>
         {allDay.some((l) => l.length) && (
-          <div className="flex border-t border-white/[0.05]">
+          <div className="flex border-t border-white/[0.07]">
             <div className={`${gutter} shrink-0 py-1 pr-1.5 text-right text-[9px] leading-tight text-muted`}>{p.compact ? "" : "tutto il giorno"}</div>
             <div className="grid flex-1 gap-px py-1" style={cols}>
               {allDay.map((list, i) => (
@@ -360,7 +360,16 @@ export function TimeGrid(p: TimeGridProps) {
 
       {/* Corpo: ore + colonne */}
       <div className="relative flex" style={{ height: H }}>
-        <div className={`${gutter} relative shrink-0`}>
+        <div
+          className={`${gutter} relative shrink-0`}
+          style={{
+            // tacche delle ore che continuano la griglia nella colonna degli orari
+            backgroundImage: "linear-gradient(to bottom, rgb(255 255 255 / 0.085) 1px, transparent 1px)",
+            backgroundSize: `6px ${hourPx}px`,
+            backgroundPosition: "right top",
+            backgroundRepeat: "repeat-y",
+          }}
+        >
           {Array.from({ length: 23 }, (_, h) => (
             <span key={h} className="absolute right-1.5 -translate-y-1/2 text-[10px] text-muted tabular-nums" style={{ top: (h + 1) * hourPx }}>
               {p.compact ? h + 1 : `${String(h + 1).padStart(2, "0")}:00`}
@@ -378,8 +387,9 @@ export function TimeGrid(p: TimeGridProps) {
           className="relative grid flex-1 touch-pan-y"
           style={{
             ...cols,
-            backgroundImage: `linear-gradient(to bottom, rgb(255 255 255 / 0.06) 1px, transparent 1px), linear-gradient(to bottom, rgb(255 255 255 / 0.025) 1px, transparent 1px)`,
-            backgroundSize: `100% ${hourPx}px, 100% ${hourPx / 2}px`,
+            // Griglia appena visibile: ore, mezz'ore e quarti d'ora sempre più leggeri.
+            backgroundImage: `linear-gradient(to bottom, rgb(255 255 255 / 0.085) 1px, transparent 1px), linear-gradient(to bottom, rgb(255 255 255 / 0.04) 1px, transparent 1px), linear-gradient(to bottom, rgb(255 255 255 / 0.018) 1px, transparent 1px)`,
+            backgroundSize: `100% ${hourPx}px, 100% ${hourPx / 2}px, 100% ${hourPx / 4}px`,
           }}
           onPointerDown={onPointerDown}
           onDragOver={(e) => {
@@ -402,7 +412,7 @@ export function TimeGrid(p: TimeGridProps) {
           }}
         >
           {days.map((d, i) => (
-            <div key={d} className={`relative ${i ? "border-l border-white/[0.05]" : ""} ${weekday(d) > 5 ? "bg-white/[0.012]" : ""}`}>
+            <div key={d} className={`relative ${i ? "border-l border-white/[0.075]" : ""} ${weekday(d) > 5 ? "bg-white/[0.012]" : ""}`}>
               {placed[i].map((pl) => {
                 const dragging = drag && drag.kind !== "create" && drag.o.key === pl.o.key;
                 return (

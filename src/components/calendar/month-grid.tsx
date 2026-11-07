@@ -45,7 +45,7 @@ export function MonthGrid(p: {
               tabIndex={0}
               onClick={() => (window.matchMedia("(min-width: 768px)").matches ? p.onOpenDay(d) : p.onSelect(d))}
               onKeyDown={(e) => e.key === "Enter" && p.onOpenDay(d)}
-              className={`group relative flex min-h-[2.9rem] cursor-pointer flex-col gap-0.5 border-white/[0.05] p-0.5 transition-colors md:min-h-[7.5rem] md:gap-1 md:p-1.5 ${
+              className={`group relative flex min-h-[2.9rem] cursor-pointer flex-col gap-0.5 border-white/[0.08] p-0.5 transition-colors md:min-h-[7.5rem] md:gap-1 md:p-1.5 ${
                 i % 7 ? "border-l" : ""
               } ${i >= 7 ? "border-t" : ""} ${inMonth ? "" : "bg-black/30"} ${isSel ? "bg-white/[0.06] md:bg-transparent" : "hover:bg-white/[0.03]"}`}
             >

@@ -116,13 +116,16 @@ body::before {
     text-shadow: 0 1px 0 rgb(255 255 255 / 0.5);
   }
 
+  /* Titoli: argento più chiaro del --chrome (niente zone scure che li spengono sul nero),
+     con un filo d'ombra sotto e un alone appena accennato per staccarli dallo sfondo. */
   .chrome-text {
-    background: var(--chrome);
+    background: linear-gradient(115deg, #b9b9b9 0%, #ffffff 18%, #d2d2d2 34%, #ffffff 50%, #a8a8a8 66%, #f2f2f2 82%, #c4c4c4 100%);
     background-size: 240% 100%;
     animation: sheen 12s ease-in-out infinite alternate;
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
+    filter: drop-shadow(0 1px 0 rgb(0 0 0 / 0.7)) drop-shadow(0 0 14px rgb(255 255 255 / 0.12));
   }
 
   /* Goccia di mercurio nero per gli avatar. */
