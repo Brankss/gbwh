@@ -304,7 +304,7 @@ export function TimeGrid(p: TimeGridProps) {
       onContextMenu={(e) => e.preventDefault()}
     >
       {/* Intestazione: giorni + eventi di tutto il giorno */}
-      <div ref={headRef} className="sticky top-0 z-20 border-b border-white/[0.07] bg-[#070707]/90 backdrop-blur-xl">
+      <div ref={headRef} className="sticky top-0 z-20 border-b border-line bg-[#080808]/90 backdrop-blur-xl">
         <div className="flex">
           <div className={`${gutter} shrink-0`} />
           <div className="grid flex-1" style={cols}>
@@ -316,14 +316,14 @@ export function TimeGrid(p: TimeGridProps) {
                     {WEEKDAYS_SHORT[weekday(d) - 1]}
                   </span>
                   <span
-                    className={`grid size-7 place-items-center rounded-full text-[15px] font-semibold tabular-nums ${today ? "chrome" : weekday(d) > 5 ? "text-[#9a9a9a]" : ""}`}
+                    className={`grid size-7 place-items-center rounded-full text-[15px] font-medium tabular-nums ${today ? "chrome font-semibold" : weekday(d) > 5 ? "text-[#9a9a9a]" : ""}`}
                   >
                     {+d.slice(8)}
                   </span>
                 </>
               );
               return p.onDayClick ? (
-                <button key={d} onClick={() => p.onDayClick!(d)} className="press flex flex-col items-center gap-0.5 rounded-xl py-1.5 hover:bg-white/[0.04]" title="Apri il giorno">
+                <button key={d} onClick={() => p.onDayClick!(d)} className="press flex flex-col items-center gap-0.5 rounded-lg py-1.5 hover:bg-white/[0.04]" title="Apri il giorno">
                   {head}
                 </button>
               ) : (
@@ -335,7 +335,7 @@ export function TimeGrid(p: TimeGridProps) {
           </div>
         </div>
         {allDay.some((l) => l.length) && (
-          <div className="flex border-t border-white/[0.07]">
+          <div className="flex border-t border-line">
             <div className={`${gutter} shrink-0 py-1 pr-1.5 text-right text-[9px] leading-tight text-muted`}>{p.compact ? "" : "tutto il giorno"}</div>
             <div className="grid flex-1 gap-px py-1" style={cols}>
               {allDay.map((list, i) => (
@@ -436,7 +436,7 @@ export function TimeGrid(p: TimeGridProps) {
               {/* Linea di "adesso" */}
               {d === nowDay && (
                 <div className="pointer-events-none absolute inset-x-0 z-10" style={{ top: (nowMin / 60) * hourPx }}>
-                  <div className="h-[2px] bg-gradient-to-r from-white via-white/80 to-white/30 shadow-[0_0_10px_rgb(255_255_255/0.5)]" />
+                  <div className="h-[2px] bg-gradient-to-r from-white via-white/75 to-white/25 shadow-[0_0_8px_rgb(255_255_255/0.4)]" />
                   <div className="absolute -top-[4px] -left-[5px] size-[10px] rounded-full bg-white shadow-[0_0_10px_rgb(255_255_255/0.8)]" />
                 </div>
               )}
@@ -490,8 +490,8 @@ function EventBlock(props: {
         height: Math.max(height - 2, 14),
         left: `calc(${props.left * 100}% + 2px)`,
         width: `calc(${props.width * 100}% - 4px)`,
-        background: `linear-gradient(180deg, color-mix(in oklab, ${color} 34%, #0c0c0c), color-mix(in oklab, ${color} 22%, #080808))`,
-        boxShadow: `inset 3px 0 0 ${color}, inset 0 1px 0 rgb(255 255 255 / 0.08), 0 4px 12px -6px rgb(0 0 0 / 0.8)`,
+        background: `color-mix(in oklab, ${color} 27%, #0b0b0b)`,
+        boxShadow: `inset 3px 0 0 ${color}, inset 0 0 0 1px color-mix(in oklab, ${color} 22%, transparent)`,
         borderTopLeftRadius: props.clipTop ? 0 : undefined,
         borderTopRightRadius: props.clipTop ? 0 : undefined,
         borderBottomLeftRadius: props.clipBottom ? 0 : undefined,
@@ -504,7 +504,7 @@ function EventBlock(props: {
           {o.title}
         </span>
         {!props.compact && (
-          <span className={`truncate text-[10.5px] text-white/60 tabular-nums ${short ? "shrink-0" : ""}`}>
+          <span className={`truncate text-[11px] text-white/60 tabular-nums ${short ? "shrink-0" : ""}`}>
             {o.start.slice(11)}–{o.end.slice(11)}
             {!short && o.place ? ` · ${o.place}` : ""}
             {o.repeat ? " ↻" : ""}

@@ -26,7 +26,7 @@ export function SidePanel(p: {
 }) {
   const pending = p.requests.filter((r) => r.status === "pending");
   return (
-    <div className="space-y-5">
+    <div className="space-y-7">
       {pending.length > 0 && (
         <Block title={`Richieste (${pending.length})`} action={<Small onClick={p.onAllRequests}>Tutte</Small>}>
           <div className="space-y-2">
@@ -39,12 +39,13 @@ export function SidePanel(p: {
 
       <Block title={`Da pianificare${p.backlog.length ? ` (${p.backlog.length})` : ""}`}>
         {p.backlog.length === 0 ? (
-          <p className="rounded-xl border border-dashed border-white/10 px-3 py-3 text-[13px] leading-relaxed text-muted">
+          <p className="rounded-xl border border-dashed border-white/[0.12] px-3.5 py-3 text-[13px] leading-relaxed text-muted">
             Le cose senza un orario preciso finiscono qui. Scrivi <span className="text-fg">“… da pianificare”</span> nella barra in alto, poi trascinale nel calendario
             o premi <Icon name="spark" className="inline size-3.5" /> per trovare uno spazio libero.
           </p>
         ) : (
-          <div className="space-y-1.5">
+          <div className="space-y-2">
+            <div className="panel rows overflow-hidden rounded-xl">
             {p.backlog.map((e) => (
               <div
                 key={e.id}
@@ -55,12 +56,12 @@ export function SidePanel(p: {
                   ev.dataTransfer.setData(`text/x-cal-min-${e.minutes ?? 60}`, "");
                   ev.dataTransfer.effectAllowed = "move";
                 }}
-                className="group matte flex cursor-grab items-center gap-2.5 rounded-xl py-2 pr-1.5 pl-2.5 active:cursor-grabbing"
+                className="group flex cursor-grab items-center gap-2.5 py-2 pr-1.5 pl-3 transition-colors hover:bg-white/[0.03] active:cursor-grabbing"
               >
                 <span className="h-7 w-1 shrink-0 rounded-full" style={{ background: colorOf(p.categories, e.category) }} />
                 <button onClick={() => p.onOpenBacklog(e)} className="min-w-0 flex-1 text-left">
-                  <span className="block truncate text-[13.5px] font-medium">{e.title}</span>
-                  <span className="block truncate text-[11px] text-muted">
+                  <span className="block truncate text-sm font-medium">{e.title}</span>
+                  <span className="block truncate text-xs text-muted">
                     {durationLabel(e.minutes ?? 60)}
                     {e.due ? ` · entro ${dayLabel(e.due)}` : ""}
                     {e.by !== "tu" ? ` · da ${p.byName(e.by)}` : ""}
@@ -70,13 +71,14 @@ export function SidePanel(p: {
                   onClick={() => p.onPlace(e)}
                   title="Mettilo nel primo spazio libero"
                   aria-label={`Trova uno spazio per ${e.title}`}
-                  className="press grid size-8 shrink-0 place-items-center rounded-lg text-[#b4b4b4] hover:bg-white/[0.07] hover:text-fg"
+                  className="press icon-btn rounded-lg!"
                 >
                   <Icon name="spark" className="size-4" />
                 </button>
               </div>
             ))}
-            <p className="hidden px-1 text-[11px] text-muted lg:block">Trascinali nella griglia per fissarli a un orario.</p>
+            </div>
+            <p className="hidden px-1 text-xs text-muted lg:block">Trascinali nella griglia per fissarli a un orario.</p>
           </div>
         )}
       </Block>
@@ -92,7 +94,7 @@ export function SidePanel(p: {
               <div key={`${l.at}-${i}`} className="flex gap-2 text-[12px] leading-snug">
                 <span className={`mt-1.5 size-1.5 shrink-0 rounded-full ${l.by === "tu" ? "bg-white/40" : "bg-white"}`} />
                 <span className="min-w-0 text-muted">
-                  <span className="font-medium text-fg">{l.by === "tu" ? "Tu" : p.byName(l.by)}</span> {l.action} <span className="text-[#c8c8c8]">«{l.title}»</span> ·{" "}
+                  <span className="font-medium text-fg">{l.by === "tu" ? "Tu" : p.byName(l.by)}</span> {l.action} <span className="text-soft">«{l.title}»</span> ·{" "}
                   {ago(l.at)}
                 </span>
               </div>
@@ -115,7 +117,7 @@ function TimeStats({ occs, categories, from, to, label }: { occs: Occurrence[]; 
         <p className="text-[13px] text-muted">Ancora niente in calendario in questo periodo.</p>
       ) : (
         <div className="space-y-3">
-          <div className="flex h-2.5 overflow-hidden rounded-full bg-white/[0.05]">
+          <div className="flex h-2 overflow-hidden rounded-full bg-white/[0.05]">
             {rows.map((r) => (
               <span key={r.category} title={categories.find((c) => c.id === r.category)?.name ?? "Senza categoria"} style={{ width: `${(r.minutes / total) * 100}%`, background: colorOf(categories, r.category) }} className="h-full border-r border-black/60 last:border-0" />
             ))}
@@ -130,7 +132,7 @@ function TimeStats({ occs, categories, from, to, label }: { occs: Occurrence[]; 
               </div>
             ))}
           </div>
-          <div className="flex justify-between border-t border-white/[0.06] pt-2 text-[12px] text-muted">
+          <div className="flex justify-between border-t border-line pt-2.5 text-xs text-muted">
             <span>Totale pianificato</span>
             <span className="tabular-nums">
               {fmtHours(total)}
@@ -160,24 +162,24 @@ export function RequestCard({ r, byName, onToast }: { r: CalRequest; byName: (id
   const what = r.text ?? describePayload(r);
   const auto = r.action !== "other" && (r.payload || r.text);
   return (
-    <div className="matte space-y-2 rounded-xl p-3">
-      <div className="text-[11px] text-muted">
+    <div className="panel space-y-2 rounded-xl p-3.5">
+      <div className="text-xs text-muted">
         <span className="font-semibold text-fg">{byName(r.by)}</span> · {ago(r.createdAt)}
         {r.status !== "pending" && ` · ${r.status === "approved" ? "approvata" : "rifiutata"}${r.decidedBy ? ` da ${r.decidedBy === "tu" ? "te" : byName(r.decidedBy)}` : ""}`}
       </div>
-      <p className="text-[13.5px] leading-snug">{what}</p>
+      <p className="text-sm leading-snug">{what}</p>
       {r.note && <p className="text-[12px] text-muted italic">“{r.note}”</p>}
       {r.status === "pending" && (
-        <div className="flex gap-1.5">
+        <div className="flex flex-wrap gap-1.5 pt-0.5">
           {auto && (
-            <button disabled={busy} onClick={() => decide("approved", true)} className="press chrome h-7 rounded-full px-3 text-xs font-semibold disabled:opacity-50">
+            <button disabled={busy} onClick={() => decide("approved", true)} className="press hit chrome h-8 rounded-full px-3.5 text-[13px] font-semibold disabled:opacity-50">
               Applica
             </button>
           )}
-          <button disabled={busy} onClick={() => decide("approved", false)} className="press h-7 rounded-full border border-white/10 px-3 text-xs text-[#b4b4b4] hover:text-fg disabled:opacity-50">
+          <button disabled={busy} onClick={() => decide("approved", false)} className="press hit h-8 rounded-full px-3 text-[13px] text-soft shadow-[inset_0_0_0_1px_rgb(255_255_255/0.1)] hover:bg-white/[0.05] hover:text-fg disabled:opacity-50">
             Fatto a mano
           </button>
-          <button disabled={busy} onClick={() => decide("rejected", false)} className="press h-7 rounded-full px-2.5 text-xs text-muted hover:text-[#ec8585] disabled:opacity-50">
+          <button disabled={busy} onClick={() => decide("rejected", false)} className="press hit h-8 rounded-full px-3 text-[13px] text-muted hover:bg-[#e66767]/10 hover:text-danger disabled:opacity-50">
             Rifiuta
           </button>
         </div>
@@ -196,10 +198,9 @@ function describePayload(r: CalRequest) {
 
 export function Block({ title, action, children }: { title: string; action?: React.ReactNode; children: React.ReactNode }) {
   return (
-    <section className="space-y-2.5">
-      <div className="flex items-center gap-2">
-        <h3 className="shrink-0 text-[11px] font-semibold tracking-[0.14em] text-[#a8a8a8] uppercase">{title}</h3>
-        <span aria-hidden className="hairline flex-1" />
+    <section className="space-y-3">
+      <div className="flex min-h-8 items-center justify-between gap-2">
+        <h3 className="eyebrow truncate">{title}</h3>
         {action}
       </div>
       {children}
@@ -209,7 +210,7 @@ export function Block({ title, action, children }: { title: string; action?: Rea
 
 export function Small({ onClick, children }: { onClick: () => void; children: React.ReactNode }) {
   return (
-    <button onClick={onClick} className="press shrink-0 rounded-full px-2 py-0.5 text-xs font-medium text-[#b4b4b4] hover:bg-white/[0.06] hover:text-fg">
+    <button onClick={onClick} className="press hit -mr-2 h-8 shrink-0 rounded-full px-2.5 text-[13px] font-medium text-muted hover:bg-white/[0.06] hover:text-fg">
       {children}
     </button>
   );

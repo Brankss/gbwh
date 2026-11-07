@@ -37,7 +37,7 @@ export const QuickAdd = forwardRef<HTMLInputElement, { now: string; categories: 
             e.preventDefault();
             submit();
           }}
-          className={`matte flex items-center gap-2 rounded-2xl py-1 pr-1 pl-3.5 transition-shadow ${focus ? "shadow-[0_0_0_1px_rgb(255_255_255/0.25),0_10px_30px_-10px_rgb(0_0_0/0.9)]" : ""}`}
+          className={`flex h-11 items-center gap-2.5 rounded-xl border bg-[#0b0b0b]/85 pr-1 pl-3.5 transition-[border-color,box-shadow] ${focus ? "border-white/25 shadow-[0_0_0_3px_var(--ring)]" : "border-white/[0.09] hover:border-white/15"}`}
         >
           <Icon name="plus" className="size-4 shrink-0 text-muted" />
           <input
@@ -48,7 +48,8 @@ export const QuickAdd = forwardRef<HTMLInputElement, { now: string; categories: 
             onBlur={() => setFocus(false)}
             onKeyDown={(e) => e.key === "Escape" && (setText(""), (e.target as HTMLInputElement).blur())}
             placeholder={`Aggiungi al volo… es. "${example}"`}
-            className="h-10 min-w-0 flex-1 bg-transparent text-[15px] outline-none placeholder:text-[#5f5f5f]"
+            aria-label="Aggiungi al volo"
+            className="h-full min-w-0 flex-1 bg-transparent text-[15px] outline-none placeholder:text-[#6a6a6a]"
             enterKeyHint="done"
             autoComplete="off"
             maxLength={500}
@@ -61,11 +62,11 @@ export const QuickAdd = forwardRef<HTMLInputElement, { now: string; categories: 
                   onDetails(fields);
                   setText("");
                 }}
-                className="press hidden h-8 shrink-0 rounded-xl px-2.5 text-xs font-medium text-[#b4b4b4] hover:bg-white/[0.06] sm:block"
+                className="press hidden h-9 shrink-0 rounded-lg px-3 text-[13px] font-medium text-soft hover:bg-white/[0.06] hover:text-fg sm:block"
               >
                 Dettagli
               </button>
-              <button type="submit" className="press chrome h-8 shrink-0 rounded-xl px-3 text-sm font-semibold">
+              <button type="submit" className="press chrome h-9 shrink-0 rounded-lg px-3.5 text-sm font-semibold">
                 Aggiungi
               </button>
             </>
@@ -74,16 +75,16 @@ export const QuickAdd = forwardRef<HTMLInputElement, { now: string; categories: 
 
         {/* Anteprima: come verrà salvato */}
         {fields && (
-          <div className="animate-rise mt-1.5 flex flex-wrap items-center gap-1.5 px-1 text-xs">
+          <div className="animate-rise mt-2 flex flex-wrap items-center gap-1.5 px-1 text-xs">
             {fields.title ? (
               <>
                 <span className="font-semibold text-fg">{fields.title}</span>
                 <span className="text-muted">·</span>
-                <span className="text-[#c8c8c8]">{whenLabel(fields)}</span>
+                <span className="text-soft">{whenLabel(fields)}</span>
                 {fields.repeat && <Tag icon="repeat">{repeatLabel(fields.repeat)}</Tag>}
                 {"minutes" in fields && fields.minutes && !fields.start && <Tag icon="clock">{durationLabel(fields.minutes)}</Tag>}
                 {fields.category && (
-                  <span className="flex items-center gap-1 rounded-full border border-white/10 px-2 py-0.5">
+                  <span className="flex items-center gap-1 rounded-full bg-white/[0.06] px-2 py-0.5">
                     <span className="size-1.5 rounded-full" style={{ background: colorOf(categories, findCategory(categories, fields.category)?.id) }} />
                     {findCategory(categories, fields.category)?.name ?? fields.category}
                     {newCategory && <span className="text-muted">(nuova)</span>}
@@ -103,7 +104,7 @@ export const QuickAdd = forwardRef<HTMLInputElement, { now: string; categories: 
 
 function Tag({ icon, children }: { icon: "repeat" | "clock"; children: React.ReactNode }) {
   return (
-    <span className="flex items-center gap-1 rounded-full border border-white/10 px-2 py-0.5 text-[#c8c8c8]">
+    <span className="flex items-center gap-1 rounded-full bg-white/[0.06] px-2 py-0.5 text-soft">
       <Icon name={icon} className="size-3" />
       {children}
     </span>

@@ -233,12 +233,12 @@ export function CalendarApp() {
         view === "week" && (
           <button
             onClick={() => void actions.copyWeek(days[0], addDays(days[0], 7))}
-            className="press flex w-full items-center gap-2.5 rounded-xl border border-white/10 px-3 py-2.5 text-left text-[13px] text-[#b4b4b4] hover:border-white/25 hover:text-fg"
+            className="panel lift flex w-full items-center gap-3 rounded-xl px-3.5 py-3 text-left text-[13px]"
           >
-            <Icon name="copy" className="size-4 shrink-0" />
-            <span>
+            <Icon name="copy" className="size-4 shrink-0 text-muted" />
+            <span className="min-w-0">
               <span className="block font-medium text-fg">Copia questa settimana nella prossima</span>
-              <span className="block text-[11.5px] text-muted">Per ripartire da una settimana venuta bene.</span>
+              <span className="block text-xs text-muted">Per ripartire da una settimana venuta bene.</span>
             </span>
           </button>
         )
@@ -254,31 +254,24 @@ export function CalendarApp() {
         subtitle={label[0].toUpperCase() + label.slice(1)}
         actions={
           <>
-            <button
-              onClick={() => setPanel(true)}
-              aria-label="Da pianificare e statistiche"
-              className="press relative grid size-9 place-items-center rounded-full text-[#b4b4b4] hover:bg-white/[0.07] hover:text-fg lg:hidden"
-            >
+            <button onClick={() => setPanel(true)} aria-label="Da pianificare e statistiche" className="press icon-btn relative lg:hidden">
               <Icon name="inbox" />
-              {backlog.length > 0 && (
-                <span className="chrome absolute -top-0.5 -right-0.5 grid h-4 min-w-4 place-items-center rounded-full px-1 text-[10px] font-bold ring-2 ring-black">{backlog.length}</span>
-              )}
+              {backlog.length > 0 && <CountDot n={backlog.length} />}
             </button>
             <button
               onClick={() => setSettingsTab(pending ? "richieste" : "agenti")}
               aria-label="Impostazioni calendario"
               title="Agenti, categorie, richieste"
-              className="press relative grid size-9 place-items-center rounded-full text-[#b4b4b4] hover:bg-white/[0.07] hover:text-fg"
+              className="press icon-btn relative"
             >
               <Icon name="sliders" />
-              {pending > 0 && (
-                <span className="chrome absolute -top-0.5 -right-0.5 grid h-4 min-w-4 place-items-center rounded-full px-1 text-[10px] font-bold ring-2 ring-black">{pending}</span>
-              )}
+              {pending > 0 && <CountDot n={pending} />}
             </button>
             <button
               onClick={() => openNew({ mode: "timed", day: anchor, startTime: hhmm(Math.min(22 * 60, Math.ceil((minuteOf(now) + 1) / 30) * 30)), endTime: hhmm(Math.min(23 * 60, Math.ceil((minuteOf(now) + 1) / 30) * 30 + 60)) })}
               aria-label="Nuovo evento"
-              className="press chrome grid size-9 place-items-center rounded-full"
+              title="Nuovo evento"
+              className="press chrome ml-1 grid size-9 place-items-center rounded-full"
             >
               <Icon name="plus" />
             </button>
@@ -287,31 +280,30 @@ export function CalendarApp() {
       />
 
       <div className="flex min-h-0 flex-1 flex-col">
-        <div className="mx-auto w-full max-w-6xl space-y-2.5 px-3 pt-3 md:px-6">
-          {/* Navigazione */}
-          <div className="flex items-center gap-1.5 sm:gap-2">
-            <div className="matte flex shrink-0 items-center rounded-2xl p-1">
+        <div className="mx-auto w-full max-w-6xl space-y-3 px-3 pt-3 md:px-8 md:pt-5">
+          {/* Navigazione: periodo a sinistra, zoom e vista a destra */}
+          <div className="flex items-center gap-2 max-[380px]:gap-1.5">
+            <div className="seg shrink-0">
               <NavButton label="Indietro" icon="back" onClick={() => shift(-1)} />
               <button
                 onClick={() => setAnchor(today)}
                 disabled={atToday}
                 title={atToday ? undefined : "Torna a oggi"}
-                className={`press h-8 min-w-[3.25rem] rounded-xl px-2 text-[13px] font-semibold whitespace-nowrap tabular-nums max-[380px]:px-1 sm:px-3 ${atToday ? "" : "text-[#d6d6d6]"}`}
+                className={`press seg-item min-w-[3.5rem] font-semibold tabular-nums disabled:cursor-default disabled:opacity-100 max-[380px]:min-w-0 max-[380px]:px-1 max-[380px]:text-[13px] ${atToday ? "text-fg" : "text-soft"}`}
               >
                 {/* Mostra quello che stai guardando; "Oggi" solo quando ci sei sopra. Toccalo per tornare a oggi. */}
                 {atToday ? "Oggi" : shortLabel}
               </button>
               <NavButton label="Avanti" icon="forward" onClick={() => shift(1)} />
             </div>
-            <span className="hidden min-w-0 truncate text-[15px] font-semibold tracking-tight capitalize lg:block">{label}</span>
             <span className="flex-1" />
             {view !== "month" && (
-              <div className="matte hidden items-center rounded-2xl p-1 sm:flex">
+              <div className="seg hidden sm:inline-flex">
                 <NavButton label="Riduci" icon="minus" onClick={() => setZoom(zoom - 1)} disabled={zoom === 0} />
                 <NavButton label="Ingrandisci" icon="plus" onClick={() => setZoom(zoom + 1)} disabled={zoom === ZOOM.length - 1} />
               </div>
             )}
-            <div role="tablist" className="matte flex shrink-0 gap-1 rounded-2xl p-1">
+            <div role="tablist" className="seg shrink-0">
               {(
                 [
                   ["day", "Giorno", "Giorno"],
@@ -319,13 +311,7 @@ export function CalendarApp() {
                   ["month", "Mese", "Mese"],
                 ] as const
               ).map(([v, short, long]) => (
-                <button
-                  key={v}
-                  role="tab"
-                  aria-selected={view === v}
-                  onClick={() => setView(v)}
-                  className={`press h-8 rounded-xl px-2.5 text-sm font-medium whitespace-nowrap max-[380px]:px-1.5 sm:px-3.5 ${view === v ? "gloss text-fg" : "border border-transparent text-muted hover:bg-white/[0.04] hover:text-fg"}`}
-                >
+                <button key={v} role="tab" aria-selected={view === v} onClick={() => setView(v)} className="press seg-item max-[380px]:px-1.5 max-[380px]:text-[13px] sm:px-4">
                   <span className="sm:hidden">{short}</span>
                   <span className="hidden sm:inline">{long}</span>
                 </button>
@@ -336,10 +322,10 @@ export function CalendarApp() {
           {settings && <QuickAdd ref={quickRef} now={now} categories={categories} onAdd={(f) => void actions.create(f)} onDetails={(f) => openNew({}, f)} />}
         </div>
 
-        <div className="mx-auto flex min-h-0 w-full max-w-6xl flex-1 gap-5 px-3 pt-2.5 pb-[max(0.75rem,var(--badge-space,0px))] md:px-6">
-          <div className="matte relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-[1.25rem]">
+        <div className="mx-auto flex min-h-0 w-full max-w-6xl flex-1 gap-6 px-3 pt-3 pb-[max(0.75rem,var(--badge-space,0px))] md:px-8 md:pb-[max(1.25rem,var(--badge-space,0px))]">
+          <div className="panel relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-2xl">
             {!data.data || !settings ? (
-              <div className="m-3 flex-1 skeleton rounded-xl" />
+              <div className="skeleton m-3 flex-1 rounded-xl" />
             ) : view === "month" ? (
               <MonthGrid
                 anchor={anchor}
@@ -374,7 +360,7 @@ export function CalendarApp() {
               />
             )}
           </div>
-          <aside className="scroll-thin hidden w-72 shrink-0 overflow-y-auto pb-6 lg:block">{settings && side}</aside>
+          <aside className="scroll-thin hidden w-72 shrink-0 overflow-y-auto pb-6 lg:block" aria-label="Da pianificare e tempo">{settings && side}</aside>
         </div>
       </div>
 
@@ -411,7 +397,7 @@ export function CalendarApp() {
         <div className="pointer-events-none fixed inset-x-0 z-50 flex justify-center px-4" style={{ bottom: "max(1.25rem, calc(var(--badge-space, 0px) + 0.5rem))" }}>
           <div
             role="status"
-            className={`card animate-rise pointer-events-auto flex max-w-md items-center gap-3 rounded-2xl! py-2.5 pr-2 pl-4 text-sm shadow-[0_20px_50px_-15px_rgb(0_0_0/0.9)] ${toast.error ? "text-[#ec8585]" : ""}`}
+            className={`card animate-rise pointer-events-auto flex min-h-12 max-w-md items-center gap-3 rounded-2xl! py-2 pr-2 pl-4 text-sm ${toast.error ? "text-danger" : ""}`}
           >
             <span className="min-w-0 flex-1 leading-snug">{toast.text}</span>
             {toast.undo && (
@@ -420,7 +406,7 @@ export function CalendarApp() {
                   toast.undo!();
                   setToast(null);
                 }}
-                className="press chrome h-8 shrink-0 rounded-xl px-3 text-[13px] font-semibold"
+                className="press hit chrome h-8 shrink-0 rounded-full px-3.5 text-[13px] font-semibold"
               >
                 Annulla
               </button>
@@ -434,8 +420,13 @@ export function CalendarApp() {
 
 function NavButton({ label, icon, onClick, disabled }: { label: string; icon: "back" | "forward" | "plus" | "minus"; onClick: () => void; disabled?: boolean }) {
   return (
-    <button onClick={onClick} disabled={disabled} aria-label={label} title={label} className="press grid size-8 place-items-center max-[380px]:size-7 rounded-xl text-[#b4b4b4] hover:bg-white/[0.06] hover:text-fg disabled:opacity-30">
+    <button onClick={onClick} disabled={disabled} aria-label={label} title={label} className="press seg-item w-9 px-0! max-[380px]:w-7">
       <Icon name={icon} className="size-4" />
     </button>
   );
+}
+
+/** Contatore sull'angolo di un pulsante a icona. */
+function CountDot({ n }: { n: number }) {
+  return <span className="chrome absolute -top-0.5 -right-0.5 grid h-4 min-w-4 place-items-center rounded-full px-1 text-[10px] font-bold tabular-nums ring-2 ring-black">{n}</span>;
 }

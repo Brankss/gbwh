@@ -48,10 +48,11 @@ export function SourceBar({ data, configured, onSynced }: { data: ModelsData | n
     }
   };
   return (
-    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted">
+    <div className="flex min-w-0 items-center gap-x-3 gap-y-1 text-xs text-muted md:justify-end">
       {data && (
-        <span>
-          Fonte: {data.source} · aggiornato {ago(data.updatedAt)}
+        <span className="min-w-0 leading-relaxed md:max-w-md md:text-right" title={data.source}>
+          <span className="line-clamp-2">Fonte: {data.source}</span>
+          <span className="block text-muted/80">aggiornato {ago(data.updatedAt)}</span>
         </span>
       )}
       {configured && (
@@ -59,7 +60,7 @@ export function SourceBar({ data, configured, onSynced }: { data: ModelsData | n
           {busy ? "Aggiorno…" : "Aggiorna"}
         </Button>
       )}
-      {error && <span className="text-[#ec8585]">{error}</span>}
+      {error && <span className="text-danger">{error}</span>}
     </div>
   );
 }
