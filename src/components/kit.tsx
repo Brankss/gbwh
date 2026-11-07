@@ -180,16 +180,16 @@ export function Modal({ title, onClose, children, footer }: { title: string; onC
 export function Field({ label, hint, children }: { label: string; hint?: string; children: ReactNode }) {
   return (
     <label className="block space-y-1.5">
-      <span className="flex items-baseline justify-between gap-2 text-xs">
+      <span className="flex flex-wrap items-baseline justify-between gap-x-2 gap-y-0.5 text-xs">
         <span className="font-medium text-soft">{label}</span>
-        {hint && <span className="truncate text-muted">{hint}</span>}
+        {hint && <span className="text-muted">{hint}</span>}
       </span>
       {children}
     </label>
   );
 }
 
-export const inputClass = "field w-full text-[15px]";
+export const inputClass = "field w-full min-w-0 text-[15px]";
 
 /** Viste che si escludono (Prodotti / Pubblicità, Grafici / Tabella…): controllo a segmenti. */
 export function Tabs<T extends string>({ value, onChange, options }: { value: T; onChange: (v: T) => void; options: { value: T; label: string; count?: number }[] }) {

@@ -255,7 +255,7 @@ function ProductEditor({ product, ads, onClose }: { product?: Product; ads: Ad[]
       <Field label="Nome">
         <input className={inputClass} value={f.name} onChange={set("name")} autoFocus={!product} />
       </Field>
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-3 items-end gap-3">
         <Field label="Stato">
           <select className={inputClass} value={f.status} onChange={set("status")}>
             {PRODUCT_STATUS.map((s) => (
@@ -376,7 +376,7 @@ function AdEditor({ ad, products, onClose }: { ad?: Ad; products: Product[]; onC
           </select>
         </Field>
       </div>
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-3 items-end gap-3">
         <Field label="Budget €">
           <input className={inputClass} inputMode="decimal" value={f.budget} onChange={set("budget")} />
         </Field>

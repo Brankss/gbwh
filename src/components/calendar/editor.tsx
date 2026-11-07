@@ -201,10 +201,12 @@ export function EventEditor(p: {
 
         {d.mode === "timed" && (
           <div className="space-y-2.5">
-            <div className="grid grid-cols-[1.4fr_1fr_1fr] gap-2">
-              <Field label="Giorno">
-                <input type="date" value={d.day} onChange={(e) => e.target.value && set({ day: e.target.value })} className={inputClass} />
-              </Field>
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,1fr)]">
+              <div className="col-span-2 sm:col-span-1">
+                <Field label="Giorno">
+                  <input type="date" value={d.day} onChange={(e) => e.target.value && set({ day: e.target.value })} className={inputClass} />
+                </Field>
+              </div>
               <Field label="Dalle">
                 <input type="time" step={300} value={d.startTime} onChange={(e) => e.target.value && setStart(e.target.value)} className={inputClass} />
               </Field>
