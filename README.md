@@ -4,7 +4,8 @@ Il tuo spazio unico: cosa è attivo **adesso**, annunci importanti, progetti con
 
 | Sezione | Cosa fa |
 |---|---|
-| **Adesso** (`/`) | Home: annunci da leggere, progetti attivi, ultimi messaggi dei bot, media, numeri del dropshipping, podio dei modelli. |
+| **Adesso** (`/`) | Home: annunci da leggere, cosa hai in programma oggi, progetti attivi, ultimi messaggi dei bot, media, numeri del dropshipping, podio dei modelli. |
+| **Calendario** | Giorno / settimana / mese. Trascini per creare, spostare e allungare i blocchi; "Aggiungi al volo" in italiano; cose da pianificare; dove va il tuo tempo. Gli agent lo usano con un protocollo unico (sotto). |
 | **Annunci** | La casella che conta: solo cose importanti, da agent o sezioni dell'hub. Anti-rumore: dedupe + max 5 al giorno per fonte. |
 | **Progetti** | Stato attuale, prossimi passi e **conoscenze** (errori, esperienza, ricerche, correzioni) accumulate dai checkpoint. Gli agent li leggono e li aggiornano. |
 | **Dropshipping** | Prodotti e pubblicità collegati tra loro e ai media (spesa, ricavi, ROAS, margine). |
@@ -114,9 +115,39 @@ Tutte con `Authorization: Bearer <INBOUND_SECRET>` (o `?token=`). **`GET /api/ag
 | `GET /api/agent/projects/<id>` | Progetto completo: checkpoint + conoscenze |
 | `POST /api/agent/projects/<id>/checkpoints` | `{author, summary, progress?, next?: [], learnings?: [{kind, text}]}`; kind: `errore`, `esperienza`, `ricerca`, `correzione` |
 | `POST /api/agent/alerts` | `{source, title, level: "importante" o "urgente", body?, link?, dedupeKey?}`; solo se serve davvero |
+| `GET /api/agent/calendar` | Calendario: istruzioni e situazione (vedi sotto) |
 | `POST /api/agent/heartbeat` | Segnale di vita: `{agent, name?, status?: attivo, occupato o in pausa, doing?, projectId?}`. Online se l'ultimo è di meno di 15 minuti fa: compare in "Chi è sveglio" su Adesso. |
 | `GET /api/agent/products` | Prodotti e pubblicità, per collegare i media (`product` / `ad` in `POST /api/board`) |
 | `POST /api/agent/models` | Carica una classifica: `{kind: "llm", "image" o "video", source, models: [{name, org, open?, scores: {benchmark: valore}}]}` |
+
+## Calendario
+
+Fatto per costruire una routine da zero, non per copiarne una: i blocchi si spostano e si allungano trascinandoli (col dito: tieni premuto, poi trascina; le maniglie per la durata compaiono sull'evento selezionato).
+
+- **Aggiungi al volo**: `palestra domani 18-19:30 #sport`, `call con Marco lunedì alle 15 per mezz'ora`, `studio ogni lun e gio dalle 9 alle 11`, `rinnovare passaporto da pianificare 1h`. Sotto la barra vedi subito cosa ha capito.
+- **Da pianificare**: le cose senza orario. Trascinale nella griglia (desktop) o premi ✦ per metterle nel primo spazio libero.
+- **Dove va il tempo**: ore per categoria nel periodo che guardi, e quanto è stato fatto.
+- **Copia settimana**: riparti da una settimana venuta bene. Ogni modifica ha **Annulla**.
+- Tastiera (desktop): `t` oggi, `g`/`s`/`m` giorno/settimana/mese, `←`/`→`, `n` aggiungi, `+`/`-` zoom.
+
+### Il protocollo per gli agent
+
+Un solo punto d'ingresso: **`GET /api/agent/calendar`** restituisce istruzioni complete, adesso, oggi, prossimi 7 giorni, cose da pianificare e preferenze. Ogni modifica porta l'id dell'agent nel campo `agent`.
+
+| Endpoint | |
+|---|---|
+| `GET /api/agent/calendar?from=AAAA-MM-GG&to=AAAA-MM-GG` | Eventi (le ripetizioni arrivano già divise per giorno: `id` + `occurrence`) |
+| `GET /api/agent/calendar/free?date=…&minutes=60&days=7` | Spazi liberi nella fascia utile della giornata |
+| `POST /api/agent/calendar` | `{agent, text: "palestra domani 18-19:30 #sport"}` oppure `{agent, title, start, end?, minutes?, allDay?, category?, place?, notes?, repeat?, ref?}`; più eventi con `{agent, events: […]}` |
+| `PATCH /api/agent/calendar/<id>` | Solo i campi da cambiare; per le ripetizioni `occurrence` + `scope: "this"` o `"all"`; `done`, `unschedule` |
+| `DELETE /api/agent/calendar/<id>?agent=…&occurrence=…` | Elimina (un giorno o tutta la serie) |
+| `GET /api/agent/calendar/changes?since=<ms>` | Chi ha cambiato cosa |
+| `GET/POST /api/agent/calendar/requests`, `PATCH …/requests/<id>` | Richieste per il gestore |
+| `PATCH /api/agent/calendar/settings` | Preferenze, categorie, fascia utile |
+
+Orari in ora di Roma senza fuso (`2026-11-08T18:30`); un ISO con fuso viene convertito. Con lo stesso `ref` un agent aggiorna invece di duplicare. Le risposte segnalano le sovrapposizioni (`conflicts`).
+
+**Gestore del calendario.** Da *Impostazioni calendario → Agenti* scegli un agent (es. un sub-agent di Hermes o un Grokbot dedicato). Da quel momento le modifiche degli **altri** agent diventano automaticamente **richieste** per lui (risposta `202`), il gestore viene svegliato via email e decide (`apply: true` le applica). Tu modifichi sempre direttamente e puoi approvare o rifiutare le richieste dall'hub. Senza gestore, tutti scrivono direttamente: gli agent non devono cambiare nulla quando lo scegli.
 
 ## Modelli AI: da dove arrivano i dati
 

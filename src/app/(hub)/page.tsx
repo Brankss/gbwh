@@ -3,12 +3,14 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { AgentsOnline } from "@/components/agents-online";
+import { AgendaList } from "@/components/calendar/month-grid";
 import { Icon } from "@/components/icons";
 import { Card, PageBody, PageHeader, Progress, Section, Stat } from "@/components/kit";
 import { Thumb } from "@/components/media-grid";
 import type { Bot, Inbox } from "@/lib/bots";
 import { ago, eur, useApi, useNow } from "@/lib/client";
 import type { ProjectSummary } from "@/lib/hub";
+import { expand, wallNow, type CalEvent, type CalSettings } from "@/lib/calendar";
 import { formatScore, type ModelsData } from "@/lib/models";
 import type { Ad, Alert, MediaItem } from "@/lib/schemas";
 
@@ -82,6 +84,10 @@ export default function NowPage() {
               {unread.length > 3 && <p className="text-xs text-muted">e altri {unread.length - 3}</p>}
             </div>
           )}
+        </Section>
+
+        <Section title="Oggi" action={more("/calendario", "Calendario")}>
+          <TodayAgenda now={now} />
         </Section>
 
         <Section title="Chi è sveglio">
@@ -180,6 +186,24 @@ export default function NowPage() {
         )}
       </PageBody>
     </>
+  );
+}
+
+/** Cosa stai facendo adesso e cosa viene dopo, oggi. */
+function TodayAgenda({ now }: { now: number }) {
+  const wall = now ? wallNow(undefined, now) : "";
+  const today = wall.slice(0, 10);
+  const cal = useApi<{ events: CalEvent[] }>(today ? `/api/calendar?from=${today}&to=${today}` : null, { refreshInterval: 60_000 });
+  const meta = useApi<{ settings: CalSettings }>("/api/calendar/meta");
+  if (!cal.data || !meta.data) return <div className="h-20 skeleton rounded-[1.25rem]" />;
+  // Quello in corso e quello che deve ancora finire, più le cose di tutto il giorno.
+  const left = expand(cal.data.events, today, today).filter((o) => o.allDay || o.end > wall);
+  if (!left.length) return <EmptyLine href="/calendario">Niente in programma per il resto di oggi. Apri il calendario →</EmptyLine>;
+  return (
+    <Link href="/calendario" className="matte block rounded-[1.25rem] p-2 lift">
+      <AgendaList occs={left.slice(0, 4)} categories={meta.data.settings.categories} now={wall} />
+      {left.length > 4 && <p className="px-3 pt-1.5 pb-1 text-xs text-muted">e altri {left.length - 4}</p>}
+    </Link>
   );
 }
 

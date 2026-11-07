@@ -20,6 +20,9 @@ export async function GET(request: NextRequest) {
       "POST /api/agent/projects/<id>/checkpoints":
         "Nuovo checkpoint. Body: {author, summary, progress?, next?: string[], learnings?: [{kind, text}]}",
       "POST /api/agent/alerts": "Annuncio importante per Branko. Body: {source, title, level, body?, link?, dedupeKey?}",
+      "GET /api/agent/calendar":
+        "Calendario di Branko: istruzioni complete, oggi, prossimi 7 giorni, cose da pianificare, preferenze. " +
+        "Da lì aggiungi/sposti eventi (anche a parole: {agent, text:'palestra domani 18-19:30'}).",
       "POST /api/agent/heartbeat":
         "Segnale di vita, almeno ogni 15 minuti mentre lavori. Body: {agent, name?, status?: attivo|occupato|in pausa, doing?, projectId?}",
     },

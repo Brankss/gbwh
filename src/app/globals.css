@@ -501,3 +501,14 @@ html[data-nf-badge] .composer-dock {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* Calendario: niente selezione del testo o menu del browser mentre si trascina */
+.cal-grid {
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+.cal-done {
+  filter: saturate(0.35);
+  opacity: 0.6;
+}

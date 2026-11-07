@@ -106,7 +106,7 @@ function explain(e: unknown): string {
  */
 export async function wakeBot(
   botId: string,
-  what: { kind: "messaggio" | "nota" | "manuale"; text: string },
+  what: { kind: "messaggio" | "nota" | "manuale" | "calendario"; text: string },
   opts: { force?: boolean } = {},
 ): Promise<WakeResult> {
   if (!wakeConfigured()) return "skipped-not-configured";
@@ -121,21 +121,39 @@ export async function wakeBot(
     const site = (process.env.URL ?? "").replace(/\/$/, "");
     const preview = what.text.length > 500 ? `${what.text.slice(0, 500)}…` : what.text;
     const intro =
-      what.kind === "nota" ? "Nuova nota di Branko visibile a te:" : what.kind === "manuale" ? "Branko ti chiede di controllare l'hub." : "Branko ti ha scritto:";
+      what.kind === "nota"
+        ? "Nuova nota di Branko visibile a te:"
+        : what.kind === "manuale"
+          ? "Branko ti chiede di controllare l'hub."
+          : what.kind === "calendario"
+            ? "Sei il gestore del calendario e c'è una richiesta nuova:"
+            : "Branko ti ha scritto:";
+    const subject = { nota: "Nuova nota", manuale: "Sveglia", calendario: "Richiesta per il calendario", messaggio: "Nuovo messaggio" }[what.kind];
+    const steps =
+      what.kind === "calendario"
+        ? [
+            "Leggi le richieste in attesa e decidi (con il tuo token):",
+            `GET   ${site}/api/agent/calendar/requests`,
+            `PATCH ${site}/api/agent/calendar/requests/<id>   {"agent": "${botId}", "status": "approved", "apply": true}`,
+            `Istruzioni complete: GET ${site}/api/agent/calendar`,
+          ]
+        : [
+            "Leggi i messaggi nuovi e rispondi dall'hub (con il tuo token):",
+            `GET  ${site}/api/board?bot=${botId}&since=<il tuo cursor>`,
+            `POST ${site}/api/board?bot=${botId}   {"message": "..."}`,
+          ];
 
     await mailer().sendMail({
       from: env("MAIL_FROM") || env("SMTP_USER"),
       to: taggedAddress(env("WAKE_EMAIL")!, botId),
-      subject: `[${botId}] ${what.kind === "nota" ? "Nuova nota" : what.kind === "manuale" ? "Sveglia" : "Nuovo messaggio"} per ${name}`,
+      subject: `[${botId}] ${subject} per ${name}`,
       text: [
         `Sveglia per: ${name} (bot=${botId})`,
         "",
         intro,
         preview,
         "",
-        "Leggi i messaggi nuovi e rispondi dall'hub (con il tuo token):",
-        `GET  ${site}/api/board?bot=${botId}&since=<il tuo cursor>`,
-        `POST ${site}/api/board?bot=${botId}   {"message": "..."}`,
+        ...steps,
       ]
         .filter((l, i, a) => !(l === "" && a[i - 1] === ""))
         .join("\n"),

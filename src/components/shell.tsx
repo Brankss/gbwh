@@ -13,6 +13,7 @@ import { Liquid } from "./liquid";
 
 export const NAV: { href: string; label: string; icon: IconName }[] = [
   { href: "/", label: "Adesso", icon: "home" },
+  { href: "/calendario", label: "Calendario", icon: "calendar" },
   { href: "/annunci", label: "Annunci", icon: "bell" },
   { href: "/progetti", label: "Progetti", icon: "folder" },
   { href: "/dropshipping", label: "Dropship", icon: "cart" },
