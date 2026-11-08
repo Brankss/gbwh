@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Button, Empty, PageBody, PageHeader, Tabs } from "@/components/kit";
+import { Button, Empty, PageBody, PageHeader } from "@/components/kit";
 import { BriefForm } from "@/components/ugc/brief-form";
 import { BriefList } from "@/components/ugc/briefs";
 import { Chain } from "@/components/ugc/chain";
@@ -68,17 +68,31 @@ export default function UgcPage() {
           <>
             {data && <ReadyStrip data={data} />}
 
-            <Tabs
-              value={tab}
-              onChange={setTab}
-              options={[
-                { value: "catena", label: "Catena", count: live },
-                { value: "brief", label: "Brief", count: data?.briefList.length },
-                { value: "playbook", label: "Playbook" },
-                { value: "risultati", label: "Risultati" },
-                { value: "squadra", label: "Squadra" },
-              ]}
-            />
+            {/* 5 sezioni a larghezza piena: su telefono ci stanno tutte senza scorrere di lato */}
+            <div role="tablist" className="matte grid grid-cols-5 gap-1 rounded-2xl p-1">
+              {(
+                [
+                  ["catena", "Catena", live],
+                  ["brief", "Brief", data?.briefList.length],
+                  ["playbook", "Playbook", undefined],
+                  ["risultati", "Risultati", undefined],
+                  ["squadra", "Squadra", undefined],
+                ] as const
+              ).map(([value, label, count]) => (
+                <button
+                  key={value}
+                  role="tab"
+                  aria-selected={tab === value}
+                  onClick={() => setTab(value)}
+                  className={`press h-9 min-w-0 truncate rounded-xl px-1 text-[12px] font-medium min-[400px]:text-[13px] sm:text-sm ${
+                    tab === value ? "gloss text-fg" : "border border-transparent text-muted hover:bg-white/[0.04] hover:text-fg"
+                  }`}
+                >
+                  {label}
+                  {count !== undefined && count > 0 && <span className="ml-1 hidden text-xs text-muted tabular-nums sm:inline">{count}</span>}
+                </button>
+              ))}
+            </div>
 
             {!data ? (
               <SkeletonRows rows={4} />
