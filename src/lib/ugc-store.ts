@@ -68,7 +68,8 @@ export async function getSettings(): Promise<UgcSettings> {
 
 export const settingsInput = z
   .object({
-    roles: z.record(z.enum(ROLE_IDS), z.string().trim().max(32).nullable()),
+    // partialRecord: si può cambiare anche un ruolo solo.
+    roles: z.partialRecord(z.enum(ROLE_IDS), z.string().trim().max(32).nullable()),
     autoWake: z.boolean(),
   })
   .partial();
@@ -361,6 +362,8 @@ export async function updateConcept(id: string, patch: Partial<z.input<typeof co
     if (bad) return fail(bad);
   }
   const { note, ...fields } = patch;
+  // Cambia fase: il lavoro passa a un altro ruolo, quindi nessuno lo "tiene" più (salvo owner esplicito).
+  if (patch.stage && patch.stage !== current.stage && patch.owner === undefined) fields.owner = undefined;
   const n = normalizeConcept(fields);
   const next: UgcConcept = strip({
     ...current,
@@ -574,7 +577,10 @@ export async function deleteLearning(id: string): Promise<Result<true>> {
 /** Cosa c'è da fare per un ruolo, dal più vecchio (chi aspetta da più tempo prima). */
 export async function queue(role: RoleId) {
   const stages = STAGES.filter((s) => s.role === role).map((s) => s.id as StageId);
-  const concepts = (await list<UgcConcept>(COL.concepts)).filter((c) => stages.includes(c.stage)).sort((a, b) => a.updatedAt - b.updatedAt);
+  const all = (await list<UgcConcept>(COL.concepts)).filter((c) => stages.includes(c.stage)).sort((a, b) => a.updatedAt - b.updatedAt);
+  // Un vincente resta in coda all'analista solo finché la sua lezione non è nel Playbook.
+  const learned = new Set((await list<UgcLearning>(COL.learnings)).map((l) => l.conceptId).filter(Boolean));
+  const concepts = all.filter((c) => c.stage !== "vincente" || !learned.has(c.id));
   const items: { kind: string; id: string; title: string; stage?: StageId; todo: string; since: number }[] = concepts.map((c) => ({
     kind: "concept",
     id: c.id,

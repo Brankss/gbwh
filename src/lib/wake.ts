@@ -14,6 +14,8 @@ import { getBots, getReadAt } from "./store";
 const LAST_KEY = "wake:last";
 /** Se il bot è già stato svegliato e non ha ancora letto, si riprova solo dopo questo tempo. */
 const RETRY_AFTER = 15 * 60 * 1000;
+/** Calendario / UGC: al massimo una sveglia ogni 10 minuti per bot e tipo. */
+const WORK_WINDOW = 10 * 60 * 1000;
 
 const memLast = ((globalThis as { __wakeLast?: Record<string, number> }).__wakeLast ??= {});
 
@@ -112,9 +114,17 @@ export async function wakeBot(
   if (!wakeConfigured()) return "skipped-not-configured";
   const now = Date.now();
   try {
-    const [last, readAt] = await Promise.all([getLast(botId), getReadAt(botId)]);
-    // Già svegliato, non ha ancora letto, ed è passato poco: inutile mandare un'altra mail.
-    if (!opts.force && last > readAt && now - last < RETRY_AFTER) return "skipped-already-pinged";
+    // Calendario e UGC Factory non passano dalla bacheca: il bot legge la sua coda, non la chat.
+    // Per loro si conta a parte (chiave bot:tipo) e basta una sveglia ogni WORK_WINDOW: chi apre la coda vede tutto.
+    const board = what.kind === "messaggio" || what.kind === "nota" || what.kind === "manuale";
+    const lastKey = board ? botId : `${botId}:${what.kind}`;
+    if (board) {
+      const [last, readAt] = await Promise.all([getLast(botId), getReadAt(botId)]);
+      // Già svegliato, non ha ancora letto, ed è passato poco: inutile mandare un'altra mail.
+      if (!opts.force && last > readAt && now - last < RETRY_AFTER) return "skipped-already-pinged";
+    } else if (!opts.force && now - (await getLast(lastKey)) < WORK_WINDOW) {
+      return "skipped-already-pinged";
+    }
 
     const bot = (await getBots()).find((b) => b.id === botId);
     const name = bot?.name ?? botId;
@@ -166,7 +176,7 @@ export async function wakeBot(
         .filter((l, i, a) => !(l === "" && a[i - 1] === ""))
         .join("\n"),
     });
-    await Promise.all([setLast(botId, now), log(botId, { at: now, result: "sent", kind: what.kind })]);
+    await Promise.all([setLast(lastKey, now), log(botId, { at: now, result: "sent", kind: what.kind })]);
     return "sent";
   } catch (e) {
     console.error(`[wake] invio fallito per ${botId}`, e);
