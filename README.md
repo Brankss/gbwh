@@ -116,6 +116,7 @@ Tutte con `Authorization: Bearer <INBOUND_SECRET>` (o `?token=`). **`GET /api/ag
 | `POST /api/agent/projects/<id>/checkpoints` | `{author, summary, progress?, next?: [], learnings?: [{kind, text}]}`; kind: `errore`, `esperienza`, `ricerca`, `correzione` |
 | `POST /api/agent/alerts` | `{source, title, level: "importante" o "urgente", body?, link?, dedupeKey?}`; solo se serve davvero |
 | `GET /api/agent/calendar` | Calendario: istruzioni e situazione (vedi sotto) |
+| `GET /api/agent/ugc?agent=<id>` | UGC Factory: protocollo, catena, ruoli, Playbook e libreria (vedi sotto) |
 | `POST /api/agent/heartbeat` | Segnale di vita: `{agent, name?, status?: attivo, occupato o in pausa, doing?, projectId?}`. Online se l'ultimo è di meno di 15 minuti fa: compare in "Chi è sveglio" su Adesso. |
 | `GET /api/agent/products` | Prodotti e pubblicità, per collegare i media (`product` / `ad` in `POST /api/board`) |
 | `POST /api/agent/models` | Carica una classifica: `{kind: "llm", "image" o "video", source, models: [{name, org, open?, scores: {benchmark: valore}}]}` |
@@ -148,6 +149,31 @@ Un solo punto d'ingresso: **`GET /api/agent/calendar`** restituisce istruzioni c
 Orari in ora di Roma senza fuso (`2026-11-08T18:30`); un ISO con fuso viene convertito. Con lo stesso `ref` un agent aggiorna invece di duplicare. Le risposte segnalano le sovrapposizioni (`conflicts`).
 
 **Gestore del calendario.** Da *Impostazioni calendario → Agenti* scegli un agent (es. un sub-agent di Hermes o un Grokbot dedicato). Da quel momento le modifiche degli **altri** agent diventano automaticamente **richieste** per lui (risposta `202`), il gestore viene svegliato via email e decide (`apply: true` le applica). Tu modifichi sempre direttamente e puoi approvare o rifiutare le richieste dall'hub. Senza gestore, tutti scrivono direttamente: gli agent non devono cambiare nulla quando lo scegli.
+
+## UGC Factory
+
+Una catena di montaggio per video pubblicitari UGC, lavorata da una squadra di bot (e da te). Il punto debole non è il generatore ma **l'idea**: per questo la creatività sta in fasi esplicite e il critico giudica il concept **prima** che si spenda per produrlo. I video si generano fuori dall'hub, con gli strumenti di ogni bot; qui restano brief, ricerca, concept, script, revisioni, video finiti, numeri e il **Playbook** (le lezioni che diventano "provate" quando lo dicono i numeri). Progetto tecnico completo: `docs/UGC_FACTORY.md`.
+
+Catena: idea → gate (critico) → script → produzione → revisione video (critico) → pronto (decidi tu, arriva un Annuncio) → in test → vincente / scartato. Ruoli: stratega, regista, critico, producer, analista; li assegni in *UGC → Squadra* e il bot di turno viene svegliato via email a ogni cambio di fase. Un ruolo non assegnato lo può fare chiunque: un bot da solo porta avanti tutta la catena, tranne il gate (non può approvare un concept scritto da lui).
+
+### Il protocollo per gli agent
+
+Un solo punto d'ingresso: **`GET /api/agent/ugc?agent=<id>`** restituisce istruzioni complete, squadra (e i ruoli di chi chiede), catena, code per ruolo, brief attivi, concept in corso, Playbook e libreria creativa (format, tipi di hook, principi, griglia del critico, regole per gli script). Ogni scrittura porta l'id dell'agent nel campo `agent` (o `?agent=`).
+
+| Endpoint | |
+|---|---|
+| `GET /api/agent/ugc/queue?agent=<id>` (o `?role=regista`) | Il lavoro da fare, dal più vecchio, con cosa fare e cosa chiamare |
+| `GET/POST /api/agent/ugc/briefs`, `GET/PATCH …/briefs/<id>` | Brief (`GET` del singolo: brief + ricerca + concept) |
+| `POST /api/agent/ugc/briefs/<id>/research` | `{agent, kind: "ad competitor", "voce cliente", "insight" o "trend", text, url?, source?, why?}` |
+| `GET /api/agent/ugc/concepts?briefId=&stage=` , `POST …/concepts` | Concept: `{agent, briefId, title, angle, format (id della libreria), hooks: [{text, type, chosen?}], story: {hook, buildup, payoff, cta}, why?}` |
+| `GET/PATCH /api/agent/ugc/concepts/<id>` | Concept completo (con la struttura del format); `PATCH` per i campi, la fase (`stage` + `note`) e per prendere il lavoro (`owner`) |
+| `POST /api/agent/ugc/concepts/<id>/reviews` | `{agent, verdict: "approvato", "da rifare" o "scartato", score, scrollStop, good?, fix?}`; sposta la fase da sola |
+| `POST /api/agent/ugc/concepts/<id>/videos` | Video finito come in bacheca: link, `{url, type}`, `{data, mime}` o multipart `file` (+ `hookId`, `qa`, `notes`, `status`) |
+| `PATCH /api/agent/ugc/videos/<id>`, `POST …/videos/<id>/results` | Modifica il video; numeri per piattaforma e giorno (stesso giorno = aggiorna) |
+| `GET/POST /api/agent/ugc/learnings`, `PATCH …/learnings/<id>` | Il Playbook |
+| `GET /api/agent/ugc/changes?since=<ms>` | Chi ha cambiato cosa |
+
+Regole che l'API fa rispettare: se c'è un critico assegnato solo lui revisiona (gli altri ricevono `403`); senza critico chiunque, tranne l'autore al gate. Il gate e la revisione video non si scavalcano con un `PATCH` della fase. Su Netlify il body di una richiesta è di circa 6 MB: i video più pesanti vanno mandati come link pubblico.
 
 ## Modelli AI: da dove arrivano i dati
 
