@@ -43,3 +43,47 @@ export async function readMedia(id: string): Promise<Stored | null> {
   if (!entry) return null;
   return { data: entry.data, mime: String(entry.metadata?.mime ?? "application/octet-stream") };
 }
+
+/* ------------------------------------------------------------------ */
+/* Media mandati dagli agent (bacheca, UGC Factory)                    */
+/* ------------------------------------------------------------------ */
+
+export const VIDEO_EXT = /\.(mp4|webm|mov|m4v|ogv)(\?|#|$)/i;
+
+/** Input sbagliato dell'agent: il messaggio va restituito così com'è con un 400. */
+export class MediaInputError extends Error {}
+
+/** Un elemento media può essere: un link, { url, type? }, oppure { data: base64, mime }. */
+export async function toMedia(item: unknown): Promise<Media> {
+  if (typeof item === "string") {
+    if (item.startsWith("data:")) return fromBase64(item);
+    return fromUrl(item);
+  }
+  if (item && typeof item === "object") {
+    const o = item as Record<string, unknown>;
+    if (typeof o.url === "string") return fromUrl(o.url, o.type);
+    if (typeof o.data === "string") return fromBase64(o.data, o.mime ?? o.type);
+  }
+  throw new MediaInputError("Elemento media non valido: usa un link, { url } oppure { data, mime }");
+}
+
+export function fromUrl(url: string, type?: unknown): Media {
+  if (!/^https?:\/\//i.test(url)) throw new MediaInputError(`Link non valido: ${url.slice(0, 80)}`);
+  const kind = type === "video" || type === "image" ? type : VIDEO_EXT.test(url) ? "video" : "image";
+  return { url, type: kind };
+}
+
+export async function fromBase64(input: string, mimeHint?: unknown): Promise<Media> {
+  const match = /^data:([^;,]+);base64,([\s\S]*)$/.exec(input);
+  const mime = (match?.[1] ?? (typeof mimeHint === "string" ? mimeHint : "")).toLowerCase();
+  const bytes = Buffer.from(match ? match[2] : input, "base64");
+  return storeFile(new Uint8Array(bytes).buffer, mime);
+}
+
+/** Controlla formato e dimensione, poi salva. */
+export async function storeFile(data: ArrayBuffer, mime: string): Promise<Media> {
+  if (!isAllowedMime(mime)) throw new MediaInputError(`Formato non supportato: ${mime || "sconosciuto"} (solo foto e video)`);
+  if (data.byteLength > MAX_UPLOAD) throw new MediaInputError("File troppo grande: per i video pesanti manda un link");
+  if (!data.byteLength) throw new MediaInputError("File vuoto");
+  return saveMedia(data, mime);
+}

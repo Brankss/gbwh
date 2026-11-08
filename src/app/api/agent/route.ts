@@ -23,6 +23,9 @@ export async function GET(request: NextRequest) {
       "GET /api/agent/calendar":
         "Calendario di Branko: istruzioni complete, oggi, prossimi 7 giorni, cose da pianificare, preferenze. " +
         "Da lì aggiungi/sposti eventi (anche a parole: {agent, text:'palestra domani 18-19:30'}).",
+      "GET /api/agent/ugc?agent=<id>":
+        "UGC Factory (video pubblicitari UGC fatti da una squadra di bot): protocollo completo, catena, i tuoi ruoli, Playbook e libreria creativa. " +
+        "Il lavoro che tocca a te: GET /api/agent/ugc/queue?agent=<id>.",
       "POST /api/agent/heartbeat":
         "Segnale di vita, almeno ogni 15 minuti mentre lavori. Body: {agent, name?, status?: attivo|occupato|in pausa, doing?, projectId?}",
     },

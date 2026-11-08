@@ -1,7 +1,7 @@
 import type { NextRequest } from "next/server";
 import { agentAuthError as authError } from "@/lib/agent-auth";
 import { MAX_TEXT, toBotId, toBotName, type BotId, type Media, type Message } from "@/lib/bots";
-import { MAX_UPLOAD, isAllowedMime, saveMedia } from "@/lib/media";
+import { MediaInputError, storeFile, toMedia } from "@/lib/media";
 import { linkMedia } from "@/lib/hub";
 import { addMessage, ensureBot, getSnapshot, markRead } from "@/lib/store";
 
@@ -77,44 +77,6 @@ export async function GET(request: NextRequest) {
 }
 
 const MAX_MEDIA = 10;
-const VIDEO_EXT = /\.(mp4|webm|mov|m4v|ogv)(\?|#|$)/i;
-
-class BadInput extends Error {}
-
-/** Un elemento media può essere: un link, { url, type? }, oppure { data: base64, mime }. */
-async function toMedia(item: unknown): Promise<Media> {
-  if (typeof item === "string") {
-    if (item.startsWith("data:")) return fromBase64(item);
-    return fromUrl(item);
-  }
-  if (item && typeof item === "object") {
-    const o = item as Record<string, unknown>;
-    if (typeof o.url === "string") return fromUrl(o.url, o.type);
-    if (typeof o.data === "string") return fromBase64(o.data, o.mime ?? o.type);
-  }
-  throw new BadInput("Elemento media non valido: usa un link, { url } oppure { data, mime }");
-}
-
-function fromUrl(url: string, type?: unknown): Media {
-  if (!/^https?:\/\//i.test(url)) throw new BadInput(`Link non valido: ${url.slice(0, 80)}`);
-  const kind = type === "video" || type === "image" ? type : VIDEO_EXT.test(url) ? "video" : "image";
-  return { url, type: kind };
-}
-
-async function fromBase64(input: string, mimeHint?: unknown): Promise<Media> {
-  const match = /^data:([^;,]+);base64,([\s\S]*)$/.exec(input);
-  const mime = (match?.[1] ?? (typeof mimeHint === "string" ? mimeHint : "")).toLowerCase();
-  const bytes = Buffer.from(match ? match[2] : input, "base64");
-  return storeFile(new Uint8Array(bytes).buffer, mime);
-}
-
-async function storeFile(data: ArrayBuffer, mime: string): Promise<Media> {
-  if (!isAllowedMime(mime)) throw new BadInput(`Formato non supportato: ${mime || "sconosciuto"} (solo foto e video)`);
-  if (data.byteLength > MAX_UPLOAD) throw new BadInput("File troppo grande: per i video pesanti manda un link");
-  if (!data.byteLength) throw new BadInput("File vuoto");
-  return saveMedia(data, mime);
-}
-
 const asList = (v: unknown) => (v == null ? [] : Array.isArray(v) ? v : [v]);
 
 /** Legge la richiesta dell'agent: JSON, multipart/form-data (file) o testo semplice. */
@@ -125,7 +87,7 @@ async function parseReply(request: NextRequest) {
     const form = await request.formData();
     const field = (k: string) => (typeof form.get(k) === "string" ? (form.get(k) as string) : undefined);
     const files = ["file", "files", "media", "image", "video"].flatMap((k) => form.getAll(k));
-    if (files.length > MAX_MEDIA) throw new BadInput(`Massimo ${MAX_MEDIA} allegati per messaggio`);
+    if (files.length > MAX_MEDIA) throw new MediaInputError(`Massimo ${MAX_MEDIA} allegati per messaggio`);
     const media: Media[] = [];
     for (const f of files) {
       media.push(typeof f === "string" ? await toMedia(f) : await storeFile(await f.arrayBuffer(), f.type.toLowerCase()));
@@ -150,7 +112,7 @@ async function parseReply(request: NextRequest) {
   }
 
   const items = [body.media, body.image, body.images, body.video, body.videos].flatMap(asList);
-  if (items.length > MAX_MEDIA) throw new BadInput(`Massimo ${MAX_MEDIA} allegati per messaggio`);
+  if (items.length > MAX_MEDIA) throw new MediaInputError(`Massimo ${MAX_MEDIA} allegati per messaggio`);
   const media: Media[] = [];
   for (const item of items) media.push(await toMedia(item));
 
@@ -174,7 +136,7 @@ export async function POST(request: NextRequest) {
   try {
     reply = await parseReply(request);
   } catch (err) {
-    if (err instanceof BadInput) return Response.json({ error: err.message }, { status: 400 });
+    if (err instanceof MediaInputError) return Response.json({ error: err.message }, { status: 400 });
     throw err;
   }
 
