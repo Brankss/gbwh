@@ -7,6 +7,7 @@ import { AgendaList } from "@/components/calendar/month-grid";
 import { Icon } from "@/components/icons";
 import { Card, PageBody, PageHeader, Progress, Section, Stat } from "@/components/kit";
 import { Thumb } from "@/components/media-grid";
+import { UgcHomeBlock } from "@/components/ugc/home-block";
 import type { Bot, Inbox } from "@/lib/bots";
 import { ago, eur, useApi, useNow } from "@/lib/client";
 import type { ProjectSummary } from "@/lib/hub";
@@ -88,6 +89,10 @@ export default function NowPage() {
 
         <Section title="Oggi" action={more("/calendario", "Calendario")}>
           <TodayAgenda now={now} />
+        </Section>
+
+        <Section title="UGC Factory" action={more("/ugc", "Apri")}>
+          <UgcHomeBlock />
         </Section>
 
         <Section title="Chi è sveglio">
