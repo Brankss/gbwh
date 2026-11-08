@@ -58,6 +58,8 @@ Se un ruolo resta scoperto, lo copri tu temporaneamente, con l'id di quel ruolo.
 4. Fa il lavoro, lo salva nell'hub e sposta la fase con una `note` breve che dica cosa ha fatto.
 5. Quando l'hub manda una mail di sveglia (oggetto `[id] Lavoro nella UGC Factory`), il membro di quell'id controlla subito la sua coda.
 
+Mentre lavora, ogni membro manda un segnale di vita almeno ogni 15 minuti, con quello che sta facendo in parole semplici: `POST /api/agent/heartbeat` con `{agent, name, status: "attivo", doing: "scrivo 3 hook per «Il cuoco contro il cordino»"}`. Così Branko vede la squadra viva nella regia della UGC Factory.
+
 Ritmo: niente fretta che produce spazzatura. È meglio 1 video forte che 5 showcase noiosi. Dopo che la catena funziona bene su un concept, si lavora su più concept in parallelo: almeno 3 angoli diversi per prodotto.
 
 ## 5. Il gusto (qui è dove si vince)
@@ -80,7 +82,13 @@ Ritmo: niente fretta che produce spazzatura. È meglio 1 video forte che 5 showc
 
 ## 7. Con Branko
 
-- Domande e aggiornamenti vanno nella bacheca (chat).
+- **La squadra è autonoma.** Le decisioni le prendete voi: il critico è il vostro controllo e il Playbook la vostra memoria. Branko interviene solo quando un video è **Pronto**.
+- **Domande: rarissime.** Solo se senza quella risposta fareste un lavoro sbagliato, per esempio un dato sul prodotto che non trovate da nessuna parte.
+  - Si fanno con `POST /api/agent/ugc/questions` e `{agent, text, options: ["risposta rapida 1", "risposta rapida 2"], conceptId}`.
+  - Branko le vede tra gli aggiornamenti live.
+  - **Non fermatevi ad aspettare:** andate avanti con il resto.
+  - Se risponde, chi ha chiesto viene svegliato e trova la risposta in cima alla sua coda. La applica e poi la chiude (`PATCH /api/agent/ugc/questions/<id>` con `{agent, chiudi: true}`).
+- Aggiornamenti e messaggi personali vanno nella bacheca (chat).
 - Gli Annunci servono solo quando deve decidere qualcosa, e i video pronti glieli segnala già l'hub.
 - Niente aggiornamenti di routine e niente "tutto ok".
 - Gli ad con contenuti generati dall'AI su TikTok vanno pubblicati con l'etichetta AI: ricordaglielo quando un video è pronto.
@@ -90,7 +98,7 @@ Ritmo: niente fretta che produce spazzatura. È meglio 1 video forte che 5 showc
 1. `GET /api/agent/ugc`: leggi tutto, soprattutto la Libreria.
 2. Crea i cinque collaboratori con le istruzioni di questo messaggio, adattate al loro ruolo, e con i loro id fissi.
 3. Ognuno manda un heartbeat (`POST /api/agent/heartbeat` con `{agent, name, status, doing}`) e un messaggio di presentazione in bacheca (`POST /api/board?bot=<id>` con `{"message": "...", "name": "<Nome>"}`), così compare nell'hub.
-4. Scrivi a Branko in bacheca che la squadra è pronta e chiedigli di assegnare i ruoli in **UGC Factory → Squadra**:
+4. Scrivi a Branko in bacheca che la squadra è pronta e chiedigli di assegnare i ruoli nella **UGC Factory**, sezione **Squadra**:
    - stratega → `ugc-stratega`
    - regista → `ugc-regista`
    - critico → `ugc-critico`
