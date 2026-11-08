@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Icon } from "@/components/icons";
-import { Button, Card, Empty, Field, Modal, PageBody, PageHeader, Pills, Stat, Tabs, inputClass } from "@/components/kit";
+import { Button, Empty, Field, List, Modal, PageBody, PageHeader, Pills, Stat, StatGrid, Tabs, inputClass } from "@/components/kit";
 import { MediaPicker, Thumb } from "@/components/media-grid";
 import { eur, send, useApi } from "@/lib/client";
 import { AD_PLATFORMS, AD_STATUS, PRODUCT_STATUS, type Ad, type MediaRef, type Product } from "@/lib/schemas";
@@ -37,27 +37,29 @@ export default function DropshippingPage() {
         }
       />
       <PageBody wide>
-        <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
+        <StatGrid>
           <Stat label="Prodotti" value={productList.length} hint={`${productList.filter((p) => p.status === "vincente").length} vincenti`} />
           <Stat label="Ads attive" value={live.length} hint={`${adList.length} in totale`} />
-          <Stat label="Spesa totale" value={eur(spend)} />
+          <Stat label="Spesa totale" value={eur(spend)} hint="tutte le ads" />
           <Stat label="ROAS totale" value={fmtRoas(roas(spend, revenue))} hint={`ricavi ${eur(revenue)}`} />
+        </StatGrid>
+
+        <div className="space-y-4">
+          <Tabs
+            value={tab}
+            onChange={setTab}
+            options={[
+              { value: "prodotti", label: "Prodotti", count: productList.length },
+              { value: "pubblicita", label: "Pubblicità", count: adList.length },
+            ]}
+          />
+
+          {tab === "prodotti" ? (
+            <ProductList products={productList} ads={adList} loading={!products.data} onOpen={setEditProduct} />
+          ) : (
+            <AdList ads={adList} products={productList} loading={!ads.data} onOpen={setEditAd} />
+          )}
         </div>
-
-        <Tabs
-          value={tab}
-          onChange={setTab}
-          options={[
-            { value: "prodotti", label: "Prodotti", count: productList.length },
-            { value: "pubblicita", label: "Pubblicità", count: adList.length },
-          ]}
-        />
-
-        {tab === "prodotti" ? (
-          <ProductList products={productList} ads={adList} loading={!products.data} onOpen={setEditProduct} />
-        ) : (
-          <AdList ads={adList} products={productList} loading={!ads.data} onOpen={setEditAd} />
-        )}
       </PageBody>
 
       {editProduct && <ProductEditor product={editProduct === "new" ? undefined : editProduct} ads={adList} onClose={() => setEditProduct(null)} />}
@@ -70,16 +72,17 @@ export default function DropshippingPage() {
 
 function ProductList({ products, ads, loading, onOpen }: { products: Product[]; ads: Ad[]; loading: boolean; onOpen: (p: Product) => void }) {
   const [status, setStatus] = useState<"tutti" | Product["status"]>("tutti");
-  if (loading) return <div className="h-40 skeleton rounded-[1.25rem]" />;
+  if (loading) return <div className="skeleton h-40 rounded-2xl" />;
   if (!products.length) return <Empty icon="cart" title="Nessun prodotto">Aggiungi i prodotti che stai valutando o testando.</Empty>;
   const shown = status === "tutti" ? products : products.filter((p) => p.status === status);
 
   return (
     <>
       <Pills
+        label="Filtra per stato"
         value={status}
         onChange={setStatus}
-        options={[{ value: "tutti" as const, label: "Tutti" }, ...PRODUCT_STATUS.map((s) => ({ value: s, label: s, count: products.filter((p) => p.status === s).length }))]}
+        options={[{ value: "tutti" as const, label: "Tutti" }, ...PRODUCT_STATUS.map((s) => ({ value: s, label: s[0].toUpperCase() + s.slice(1), count: products.filter((p) => p.status === s).length }))]}
       />
       <div className="stagger grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {shown.map((p) => {
@@ -88,24 +91,26 @@ function ProductList({ products, ads, loading, onOpen }: { products: Product[]; 
           const r = own.reduce((n, a) => n + (a.revenue ?? 0), 0);
           const cover = p.media[0];
           return (
-            <Card key={p.id} onClick={() => onOpen(p)} className="space-y-3">
-              <div className="flex gap-3">
-                <div className="size-16 shrink-0 overflow-hidden rounded-xl bg-surface">
+            <button key={p.id} onClick={() => onOpen(p)} className="panel lift flex flex-col rounded-2xl text-left">
+              <div className="flex w-full gap-3 p-4">
+                <div className="size-16 shrink-0 overflow-hidden rounded-xl bg-white/[0.04]">
                   {cover ? <Thumb item={cover} /> : <span className="grid size-full place-items-center text-muted"><Icon name="cart" /></span>}
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="truncate font-medium">{p.name}</div>
-                  <div className="text-xs text-muted">{p.status}</div>
-                  <div className="mt-1 text-sm tabular-nums">
+                  <div className="text-xs text-muted first-letter:uppercase">{p.status}</div>
+                  <div className="mt-1.5 text-sm tabular-nums">
                     {eur(p.price)} <span className="text-muted">· margine {eur(margin(p))}</span>
                   </div>
                 </div>
               </div>
-              <div className="flex justify-between text-xs text-muted">
-                <span>{own.length} ads · {p.media.length} media</span>
-                <span>ROAS {fmtRoas(roas(s, r))}</span>
+              <div className="mt-auto flex w-full justify-between border-t border-line px-4 py-2.5 text-xs text-muted">
+                <span>
+                  {own.length} ads · {p.media.length} media
+                </span>
+                <span className="tabular-nums">ROAS {fmtRoas(roas(s, r))}</span>
               </div>
-            </Card>
+            </button>
           );
         })}
       </div>
@@ -115,23 +120,24 @@ function ProductList({ products, ads, loading, onOpen }: { products: Product[]; 
 
 function AdList({ ads, products, loading, onOpen }: { ads: Ad[]; products: Product[]; loading: boolean; onOpen: (a: Ad) => void }) {
   const [status, setStatus] = useState<"tutte" | Ad["status"]>("tutte");
-  if (loading) return <div className="h-40 skeleton rounded-[1.25rem]" />;
+  if (loading) return <div className="skeleton h-40 rounded-2xl" />;
   if (!ads.length) return <Empty icon="spark" title="Nessuna pubblicità">Crea una pubblicità e collegala a un prodotto e ai video dei bot.</Empty>;
   const shown = status === "tutte" ? ads : ads.filter((a) => a.status === status);
 
   return (
     <>
       <Pills
+        label="Filtra per stato"
         value={status}
         onChange={setStatus}
-        options={[{ value: "tutte" as const, label: "Tutte" }, ...AD_STATUS.map((s) => ({ value: s, label: s, count: ads.filter((a) => a.status === s).length }))]}
+        options={[{ value: "tutte" as const, label: "Tutte" }, ...AD_STATUS.map((s) => ({ value: s, label: s[0].toUpperCase() + s.slice(1), count: ads.filter((a) => a.status === s).length }))]}
       />
-      <div className="stagger space-y-2">
+      <List className="stagger">
         {shown.map((a) => {
           const product = products.find((p) => p.id === a.productId);
           return (
-            <Card key={a.id} onClick={() => onOpen(a)} className="flex items-center gap-3">
-              <div className="size-14 shrink-0 overflow-hidden rounded-xl bg-surface">
+            <button key={a.id} onClick={() => onOpen(a)} className="row-link flex w-full items-center gap-3 px-4 py-3 text-left">
+              <div className="size-12 shrink-0 overflow-hidden rounded-xl bg-white/[0.04]">
                 {a.media[0] ? <Thumb item={a.media[0]} /> : <span className="grid size-full place-items-center text-muted"><Icon name="spark" /></span>}
               </div>
               <div className="min-w-0 flex-1">
@@ -142,13 +148,13 @@ function AdList({ ads, products, loading, onOpen }: { ads: Ad[]; products: Produ
                 </div>
               </div>
               <div className="text-right text-sm tabular-nums">
-                <div>{fmtRoas(roas(a.spend, a.revenue))}</div>
+                <div className="font-medium">{fmtRoas(roas(a.spend, a.revenue))}</div>
                 <div className="text-xs text-muted">{eur(a.spend)}</div>
               </div>
-            </Card>
+            </button>
           );
         })}
-      </div>
+      </List>
     </>
   );
 }
@@ -162,7 +168,7 @@ function MediaField({ value, onChange }: { value: MediaRef[]; onChange: (v: Medi
   const [picking, setPicking] = useState(false);
   return (
     <div className="space-y-2">
-      <div className="text-xs text-muted">Media collegati</div>
+      <div className="text-xs font-medium text-soft">Media collegati</div>
       <div className="grid grid-cols-4 gap-2">
         {value.map((m) => (
           <div key={m.id} className="relative">
@@ -171,13 +177,13 @@ function MediaField({ value, onChange }: { value: MediaRef[]; onChange: (v: Medi
               type="button"
               aria-label="Togli"
               onClick={() => onChange(value.filter((x) => x.id !== m.id))}
-              className="absolute -top-1.5 -right-1.5 grid size-6 place-items-center rounded-full bg-white text-black"
+              className="hit absolute! -top-1.5 -right-1.5 grid size-6 place-items-center rounded-full bg-white text-black shadow-[0_0_0_2px_#0a0a0a]"
             >
               <Icon name="close" className="size-3" />
             </button>
           </div>
         ))}
-        <button type="button" onClick={() => setPicking(true)} className="grid aspect-square place-items-center rounded-2xl border border-dashed border-line text-muted hover:text-fg">
+        <button type="button" onClick={() => setPicking(true)} className="grid aspect-square place-items-center rounded-xl border border-dashed border-white/15 text-muted transition-colors hover:border-white/30 hover:text-fg" aria-label="Aggiungi media">
           <Icon name="plus" />
         </button>
       </div>
@@ -231,7 +237,7 @@ function ProductEditor({ product, ads, onClose }: { product?: Product; ads: Ad[]
         <>
           {product && (
             <span className="mr-auto">
-              <Button variant="danger" small icon="trash" onClick={() => confirm("Eliminare il prodotto?") && run(() => send("DELETE", `/api/c/products/${product.id}`, undefined, refresh))} />
+              <Button variant="danger" small icon="trash" label="Elimina prodotto" onClick={() => confirm("Eliminare il prodotto?") && run(() => send("DELETE", `/api/c/products/${product.id}`, undefined, refresh))} />
             </span>
           )}
           <Button variant="ghost" onClick={onClose}>
@@ -249,7 +255,7 @@ function ProductEditor({ product, ads, onClose }: { product?: Product; ads: Ad[]
       <Field label="Nome">
         <input className={inputClass} value={f.name} onChange={set("name")} autoFocus={!product} />
       </Field>
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-3 items-end gap-3">
         <Field label="Stato">
           <select className={inputClass} value={f.status} onChange={set("status")}>
             {PRODUCT_STATUS.map((s) => (
@@ -276,7 +282,7 @@ function ProductEditor({ product, ads, onClose }: { product?: Product; ads: Ad[]
       </Field>
       {own.length > 0 && (
         <div className="space-y-1">
-          <div className="text-xs text-muted">Pubblicità di questo prodotto</div>
+          <div className="text-xs font-medium text-soft">Pubblicità di questo prodotto</div>
           {own.map((a) => (
             <div key={a.id} className="flex justify-between text-sm">
               <span className="truncate">{a.name} <span className="text-muted">· {a.status}</span></span>
@@ -285,7 +291,7 @@ function ProductEditor({ product, ads, onClose }: { product?: Product; ads: Ad[]
           ))}
         </div>
       )}
-      {error && <p className="text-sm text-[#ec8585]">{error}</p>}
+      {error && <p className="text-sm text-danger">{error}</p>}
     </Modal>
   );
 }
@@ -326,7 +332,7 @@ function AdEditor({ ad, products, onClose }: { ad?: Ad; products: Product[]; onC
         <>
           {ad && (
             <span className="mr-auto">
-              <Button variant="danger" small icon="trash" onClick={() => confirm("Eliminare la pubblicità?") && run(() => send("DELETE", `/api/c/ads/${ad.id}`, undefined, refresh))} />
+              <Button variant="danger" small icon="trash" label="Elimina pubblicità" onClick={() => confirm("Eliminare la pubblicità?") && run(() => send("DELETE", `/api/c/ads/${ad.id}`, undefined, refresh))} />
             </span>
           )}
           <Button variant="ghost" onClick={onClose}>
@@ -370,7 +376,7 @@ function AdEditor({ ad, products, onClose }: { ad?: Ad; products: Product[]; onC
           </select>
         </Field>
       </div>
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-3 items-end gap-3">
         <Field label="Budget €">
           <input className={inputClass} inputMode="decimal" value={f.budget} onChange={set("budget")} />
         </Field>
@@ -393,7 +399,7 @@ function AdEditor({ ad, products, onClose }: { ad?: Ad; products: Product[]; onC
       <Field label="Note">
         <textarea className={`${inputClass} min-h-20 resize-y`} value={f.notes} onChange={set("notes")} />
       </Field>
-      {error && <p className="text-sm text-[#ec8585]">{error}</p>}
+      {error && <p className="text-sm text-danger">{error}</p>}
     </Modal>
   );
 }

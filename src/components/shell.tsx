@@ -29,11 +29,7 @@ const MenuContext = createContext<() => void>(() => {});
 export function MenuButton() {
   const open = useContext(MenuContext);
   return (
-    <button
-      onClick={open}
-      aria-label="Menu"
-      className="press grid size-9 shrink-0 place-items-center rounded-full text-[#b4b4b4] hover:bg-white/[0.07] hover:text-fg md:hidden"
-    >
+    <button onClick={open} aria-label="Menu" className="press icon-btn md:hidden">
       <Icon name="menu" />
     </button>
   );
@@ -69,8 +65,8 @@ export function HubShell({ children }: { children: ReactNode }) {
       const active = isActive(pathname, item.href);
       const badge = item.href === "/annunci" && unread > 0 && (
         <span
-          className={`chrome grid h-5 min-w-5 place-items-center rounded-full px-1.5 text-[11px] font-bold tabular-nums ${
-            variant === "rail" ? "absolute top-1 right-2.5 ring-2 ring-black" : "ml-auto"
+          className={`chrome grid h-[18px] min-w-[18px] place-items-center rounded-full px-1 text-[10.5px] font-bold tabular-nums ${
+            variant === "rail" ? "absolute top-0.5 right-3 ring-2 ring-black" : "ml-auto"
           }`}
         >
           {unread}
@@ -82,19 +78,19 @@ export function HubShell({ children }: { children: ReactNode }) {
             key={item.href}
             href={item.href}
             aria-current={active ? "page" : undefined}
-            className={`group relative flex flex-col items-center gap-1 rounded-2xl px-1 py-1.5 transition-colors ${active ? "text-fg" : "text-[#9a9a9a] hover:text-fg"}`}
+            className={`group relative flex flex-col items-center gap-1 rounded-xl px-1 py-1.5 transition-colors ${active ? "text-fg" : "text-muted hover:text-fg"}`}
           >
-            <span className="relative grid size-11 place-items-center">
+            <span className="relative grid size-10 place-items-center">
               {/* Voce attiva: goccia d'argento liquido che si deforma dietro l'icona */}
               <span
                 className={`absolute inset-0 transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] ${
                   active
                     ? "chrome blob scale-100 opacity-100"
-                    : "blob scale-50 bg-white/[0.07] opacity-0 group-hover:scale-90 group-hover:opacity-100 group-active:scale-75"
+                    : "blob scale-50 bg-white/[0.06] opacity-0 group-hover:scale-90 group-hover:opacity-100 group-active:scale-75"
                 }`}
               />
               <span className={`relative transition-transform duration-300 group-hover:scale-105 ${active ? "text-black" : ""}`}>
-                <Icon name={item.icon} />
+                <Icon name={item.icon} className="size-[19px]" />
               </span>
             </span>
             <span className={`text-[10px] tracking-wide ${active ? "font-semibold" : "font-medium"}`}>{item.label}</span>
@@ -108,13 +104,13 @@ export function HubShell({ children }: { children: ReactNode }) {
           href={item.href}
           onClick={onNavigate}
           aria-current={active ? "page" : undefined}
-          className={`press flex items-center gap-3.5 rounded-2xl px-3.5 py-2.5 text-[15px] ${
-            active ? "chrome font-semibold" : "border border-transparent text-[#b4b4b4] hover:bg-white/[0.05] hover:text-fg"
+          className={`press relative flex h-12 items-center gap-3.5 rounded-xl px-3.5 text-[15px] ${
+            active ? "bg-white/[0.07] font-semibold text-fg" : "text-soft hover:bg-white/[0.04] hover:text-fg"
           }`}
         >
-          <span className={`grid size-8 place-items-center rounded-xl ${active ? "" : "bg-white/[0.04]"}`}>
-            <Icon name={item.icon} className="size-[18px]" />
-          </span>
+          {/* Voce attiva: un filo d'argento sul bordo */}
+          {active && <span aria-hidden className="chrome absolute top-1/2 left-0 h-5 w-[3px] -translate-y-1/2 rounded-full border-0!" />}
+          <Icon name={item.icon} className={`size-[19px] ${active ? "" : "text-muted"}`} />
           {item.label}
           {badge}
         </Link>
@@ -128,16 +124,14 @@ export function HubShell({ children }: { children: ReactNode }) {
         <Liquid />
 
         {/* Desktop: barra a icone */}
-        <nav className="glass scroll-thin relative z-10 hidden w-[80px] shrink-0 flex-col gap-1 overflow-y-auto border-r border-white/[0.06] px-1.5 py-4 md:flex">
-          <div className="mb-4 grid place-items-center">
-            <span className="chrome-text text-2xl font-black tracking-tighter">B</span>
-            <span aria-hidden className="mt-3 h-px w-8 bg-gradient-to-r from-transparent via-white/20 to-transparent" />
+        <nav className="glass no-scrollbar relative z-10 hidden w-[84px] shrink-0 flex-col gap-0.5 overflow-y-auto border-r border-line px-2 py-5 md:flex">
+          <div className="mb-5 grid h-10 place-items-center">
+            <span className="chrome-text text-[1.625rem] font-black tracking-tighter">B</span>
           </div>
           {links("rail")}
-          <form action={logout} className="mt-auto pt-3">
-            <span aria-hidden className="mx-auto mb-2 block h-px w-8 bg-gradient-to-r from-transparent via-white/15 to-transparent" />
-            <button title="Esci" className="press flex w-full flex-col items-center gap-1 rounded-2xl py-2 text-[#9a9a9a] hover:text-fg">
-              <Icon name="logout" />
+          <form action={logout} className="mt-auto border-t border-line pt-3">
+            <button title="Esci" className="press flex w-full flex-col items-center gap-1 rounded-xl py-2 text-muted hover:text-fg">
+              <Icon name="logout" className="size-[19px]" />
               <span className="text-[10px] font-medium tracking-wide">Esci</span>
             </button>
           </form>
@@ -149,24 +143,17 @@ export function HubShell({ children }: { children: ReactNode }) {
         {drawer && (
           <div className="fixed inset-0 z-40 md:hidden" role="dialog" aria-modal>
             <button aria-label="Chiudi menu" className="animate-fade absolute inset-0 bg-black/75 backdrop-blur-sm" onClick={() => setDrawer(false)} />
-            <div className="card animate-drawer absolute inset-y-0 left-0 flex w-[min(82vw,310px)] flex-col gap-1 rounded-l-none! p-3 pt-[max(1.25rem,env(safe-area-inset-top))] pb-[max(0.75rem,env(safe-area-inset-bottom))]">
-              <div className="mb-4 flex items-center justify-between px-2">
-                <span className="chrome-text text-[1.75rem] font-black tracking-tighter">Hub</span>
-                <button
-                  onClick={() => setDrawer(false)}
-                  aria-label="Chiudi"
-                  className="press grid size-9 place-items-center rounded-full text-[#b4b4b4] hover:bg-white/[0.07] hover:text-fg"
-                >
+            <div className="card animate-drawer absolute inset-y-0 left-0 flex w-[min(82vw,300px)] flex-col rounded-l-none! p-3 pt-[max(1rem,env(safe-area-inset-top))] pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+              <div className="mb-3 flex h-12 items-center justify-between pr-0.5 pl-3.5">
+                <span className="chrome-text text-[1.625rem] font-black tracking-tighter">Hub</span>
+                <button onClick={() => setDrawer(false)} aria-label="Chiudi" className="press icon-btn">
                   <Icon name="close" />
                 </button>
               </div>
-              <div className="stagger flex flex-col gap-1">{links("drawer", () => setDrawer(false))}</div>
-              <form action={logout} className="mt-auto">
-                <span aria-hidden className="mx-2 mb-2 block h-px bg-gradient-to-r from-white/15 via-white/5 to-transparent" />
-                <button className="press flex w-full items-center gap-3.5 rounded-2xl px-3.5 py-2.5 text-[#9a9a9a] hover:bg-white/[0.05] hover:text-fg">
-                  <span className="grid size-8 place-items-center rounded-xl bg-white/[0.04]">
-                    <Icon name="logout" className="size-[18px]" />
-                  </span>
+              <div className="stagger flex flex-col gap-0.5">{links("drawer", () => setDrawer(false))}</div>
+              <form action={logout} className="mt-auto border-t border-line pt-2">
+                <button className="press flex h-12 w-full items-center gap-3.5 rounded-xl px-3.5 text-[15px] text-soft hover:bg-white/[0.04] hover:text-fg">
+                  <Icon name="logout" className="size-[19px] text-muted" />
                   Esci
                 </button>
               </form>

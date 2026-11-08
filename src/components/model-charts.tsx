@@ -50,14 +50,16 @@ export function RankingChart({ models, benchmark, limit, compact }: { models: Mo
             key={m.id}
             tabIndex={compact ? undefined : 0}
             className={`group relative grid items-center gap-2 rounded-lg outline-none focus-visible:ring-1 focus-visible:ring-white/30 ${
-              compact ? "grid-cols-[minmax(0,7.5rem)_1fr_3rem] text-xs" : "grid-cols-[1.5rem_minmax(0,11rem)_1fr_3.5rem] text-sm"
+              compact
+                ? "grid-cols-[minmax(0,7.5rem)_1fr_3rem] text-xs"
+                : "grid-cols-[1.25rem_minmax(0,1fr)_auto] gap-y-1 py-0.5 text-sm sm:grid-cols-[1.5rem_minmax(0,11rem)_1fr_3.5rem] sm:gap-y-0 sm:py-0"
             }`}
           >
-            {!compact && <span className="text-right text-xs text-muted tabular-nums">{i + 1}</span>}
+            {!compact && <span className="text-right text-xs text-muted tabular-nums max-sm:row-span-2 max-sm:self-start max-sm:pt-0.5">{i + 1}</span>}
             <span className="truncate" title={m.name}>
               {m.name}
             </span>
-            <span className="relative h-2.5">
+            <span className={`relative h-2.5 ${compact ? "" : "max-sm:col-span-2 max-sm:col-start-2 max-sm:row-start-2 max-sm:h-1.5"}`}>
               <span
                 className="absolute inset-y-0 left-0 rounded-r-[4px] transition-[width] duration-500"
                 style={{
@@ -67,10 +69,10 @@ export function RankingChart({ models, benchmark, limit, compact }: { models: Mo
                 }}
               />
             </span>
-            <span className="text-right text-muted tabular-nums">{formatScore(v, benchmark.unit)}</span>
+            <span className={`text-right text-muted tabular-nums ${compact ? "" : "max-sm:col-start-3 max-sm:row-start-1"}`}>{formatScore(v, benchmark.unit)}</span>
 
             {/* Tooltip */}
-            <span className="pointer-events-none absolute bottom-full left-6 z-10 mb-1 hidden w-max max-w-[16rem] rounded-xl border border-line bg-[#0b0b0b] px-3 py-2 text-xs shadow-xl group-hover:block group-focus:block">
+            <span className="pointer-events-none absolute bottom-full left-6 z-10 mb-1 hidden w-max max-w-[16rem] rounded-xl border border-white/10 bg-[#0d0d0d] px-3 py-2 text-xs shadow-[0_16px_40px_-12px_rgb(0_0_0/0.95)] group-hover:block group-focus:block">
               <span className="block font-medium text-fg">{m.name}</span>
               <span className="block text-muted">
                 {m.org} · {m.open === true ? "open weights" : m.open === false ? "chiuso" : "licenza non dichiarata"}
@@ -107,13 +109,13 @@ export function CompareGroup({
     : null;
 
   return (
-    <div className="matte space-y-2.5 rounded-[1.25rem] p-4">
+    <div className="panel space-y-3 rounded-2xl p-4">
       <div className="flex items-baseline justify-between gap-2">
-        <h3 className="font-medium">{benchmark.label}</h3>
-        <span className="text-[11px] text-muted">{benchmark.higherIsBetter ? "più alto è meglio" : "più basso è meglio"}</span>
+        <h3 className="min-w-0 truncate font-medium">{benchmark.label}</h3>
+        <span className="shrink-0 text-xs text-muted">{benchmark.higherIsBetter ? "più alto è meglio" : "più basso è meglio"}</span>
       </div>
-      {benchmark.description && <p className="-mt-1.5 text-xs text-muted">{benchmark.description}</p>}
-      <ul className="space-y-[2px]">
+      {benchmark.description && <p className="-mt-2 text-xs leading-relaxed text-muted">{benchmark.description}</p>}
+      <ul className="space-y-1">
         {picks.map(({ model, slot }) => {
           const v = model.scores[benchmark.key];
           return (

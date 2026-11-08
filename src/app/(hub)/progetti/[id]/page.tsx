@@ -1,10 +1,9 @@
 "use client";
 
-import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { Suspense, useState } from "react";
 import { Icon } from "@/components/icons";
-import { Button, Card, Empty, Field, PageBody, PageHeader, Pills, Progress, Section, inputClass } from "@/components/kit";
+import { Button, Empty, Field, IconButton, List, PageBody, PageHeader, Pills, Progress, Section, inputClass } from "@/components/kit";
 import { ProjectForm } from "@/components/project-form";
 import { ago, send, useApi } from "@/lib/client";
 import type { Knowledge } from "@/lib/hub";
@@ -22,7 +21,7 @@ const KIND_LABEL: Record<LearningKind, string> = {
 export default function ProjectPageShell() {
   // L'id del progetto arriva dall'URL solo a runtime: la pagina vera sta dentro <Suspense>.
   return (
-    <Suspense fallback={<div className="m-6 h-40 skeleton rounded-[1.25rem]" />}>
+    <Suspense fallback={<div className="skeleton m-6 h-40 rounded-2xl" />}>
       <ProjectPage />
     </Suspense>
   );
@@ -34,13 +33,10 @@ function ProjectPage() {
   const key = `/api/c/projects/${id}`;
   const { data, error } = useApi<Full>(key, { refreshInterval: 30_000 });
   const [editing, setEditing] = useState(false);
+  const [adding, setAdding] = useState(false);
   const [kind, setKind] = useState<"tutte" | LearningKind>("tutte");
 
-  const back = (
-    <Link href="/progetti" aria-label="Progetti" className="grid size-9 shrink-0 place-items-center press rounded-full text-[#b4b4b4] hover:bg-white/[0.07] hover:text-fg">
-      <Icon name="back" />
-    </Link>
-  );
+  const back = <IconButton href="/progetti" icon="back" label="Progetti" />;
 
   if (error) {
     return (
@@ -57,7 +53,7 @@ function ProjectPage() {
       <>
         <PageHeader title="…" back={back} />
         <PageBody>
-          <div className="h-40 skeleton rounded-[1.25rem]" />
+          <div className="skeleton h-40 rounded-2xl" />
         </PageBody>
       </>
     );
@@ -86,33 +82,49 @@ function ProjectPage() {
         }
       />
       <PageBody>
-        {project.description && <p className="text-[15px] whitespace-pre-wrap text-muted">{project.description}</p>}
-        {project.links.length > 0 && (
-          <div className="flex flex-wrap gap-2">
-            {project.links.map((l) => (
-              <a key={l.url} href={l.url} target="_blank" rel="noreferrer" className="matte inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-sm hover:text-fg">
-                <Icon name="link" className="size-3.5" /> {l.label}
-              </a>
-            ))}
+        {(project.description || project.links.length > 0) && (
+          <div className="space-y-4">
+            {project.description && <p className="max-w-2xl text-[15px] leading-relaxed whitespace-pre-wrap text-soft">{project.description}</p>}
+            {project.links.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {project.links.map((l) => (
+                  <a key={l.url} href={l.url} target="_blank" rel="noreferrer" className="press chip">
+                    <Icon name="link" className="size-3.5" /> {l.label}
+                  </a>
+                ))}
+              </div>
+            )}
           </div>
         )}
 
-        <Section title="Stato attuale">
+        <Section
+          title="Stato attuale"
+          action={
+            !adding && (
+              <Button small variant="ghost" icon="plus" onClick={() => setAdding(true)}>
+                Nuovo checkpoint
+              </Button>
+            )
+          }
+        >
+          {adding && <NewCheckpoint projectId={project.id} lastProgress={latest?.progress} onClose={() => setAdding(false)} />}
           {latest ? (
-            <Card className="space-y-3">
-              <div className="flex items-center gap-2 text-xs text-muted">
-                <span className="font-medium text-fg">{latest.author}</span>
-                <span>· {ago(latest.createdAt)}</span>
-                {latest.progress !== undefined && <span className="ml-auto font-medium text-fg tabular-nums">{latest.progress}%</span>}
+            <div className="panel overflow-hidden rounded-2xl">
+              <div className="space-y-3 p-4 md:p-5">
+                <div className="flex items-center gap-2 text-xs text-muted">
+                  <span className="font-medium text-soft">{latest.author}</span>
+                  <span>· {ago(latest.createdAt)}</span>
+                  {latest.progress !== undefined && <span className="ml-auto text-sm font-semibold text-fg tabular-nums">{latest.progress}%</span>}
+                </div>
+                {latest.progress !== undefined && <Progress value={latest.progress} />}
+                <p className="leading-relaxed whitespace-pre-wrap">{latest.summary}</p>
               </div>
-              {latest.progress !== undefined && <Progress value={latest.progress} />}
-              <p className="whitespace-pre-wrap">{latest.summary}</p>
               {latest.next.length > 0 && (
-                <div>
-                  <div className="mb-1 text-xs text-muted">Prossimi passi</div>
-                  <ul className="space-y-1 text-sm">
+                <div className="border-t border-line px-4 py-3.5 md:px-5">
+                  <div className="eyebrow mb-2">Prossimi passi</div>
+                  <ul className="space-y-1.5 text-sm">
                     {latest.next.map((n, i) => (
-                      <li key={i} className="flex gap-2">
+                      <li key={i} className="flex gap-2.5">
                         <span className="text-muted">→</span>
                         {n}
                       </li>
@@ -120,17 +132,16 @@ function ProjectPage() {
                   </ul>
                 </div>
               )}
-            </Card>
+            </div>
           ) : (
-            <p className="text-sm text-muted">Ancora nessun checkpoint. Scrivi il primo qui sotto, o lascia che lo faccia un agent.</p>
+            !adding && <p className="panel rounded-2xl px-4 py-3.5 text-sm text-muted">Ancora nessun checkpoint. Scrivi il primo, o lascia che lo faccia un agent.</p>
           )}
         </Section>
-
-        <NewCheckpoint projectId={project.id} lastProgress={latest?.progress} />
 
         <Section title={`Conoscenze · ${knowledge.length}`}>
           {knowledge.length > 0 && (
             <Pills
+              label="Filtra le conoscenze"
               value={kind}
               onChange={setKind}
               options={[
@@ -142,37 +153,37 @@ function ProjectPage() {
           {shownKnowledge.length === 0 ? (
             <p className="text-sm text-muted">Le cose imparate (errori, esperienza, ricerche, correzioni) si accumulano qui da tutti i checkpoint.</p>
           ) : (
-            <ul className="space-y-2">
+            <List>
               {shownKnowledge.map((k, i) => (
-                <li key={`${k.checkpointId}-${i}`} className="matte rounded-2xl px-4 py-3">
-                  <div className="mb-1 text-[11px] text-muted">
-                    <span className="font-medium text-fg">{KIND_LABEL[k.kind]}</span> · {k.author} · {ago(k.at)}
+                <div key={`${k.checkpointId}-${i}`} className="px-4 py-3.5">
+                  <div className="mb-1 text-xs text-muted">
+                    <span className="font-medium text-soft">{KIND_LABEL[k.kind]}</span> · {k.author} · {ago(k.at)}
                   </div>
-                  <p className="text-sm whitespace-pre-wrap">{k.text}</p>
-                </li>
+                  <p className="text-sm leading-relaxed whitespace-pre-wrap">{k.text}</p>
+                </div>
               ))}
-            </ul>
+            </List>
           )}
         </Section>
 
         {checkpoints.length > 1 && (
           <Section title="Cronologia">
-            <ol className="relative space-y-4 border-l border-line pl-5">
+            <ol className="relative ml-1 space-y-5 border-l border-line pl-5">
               {checkpoints.slice(1).map((c) => (
                 <li key={c.id} className="relative">
-                  <span className="absolute top-1.5 -left-[25px] size-2.5 rounded-full border border-line bg-surface-2" />
-                  <div className="text-[11px] text-muted">
+                  <span className="absolute top-1.5 -left-[25px] size-2 rounded-full bg-[#5a5a5a] ring-4 ring-bg" />
+                  <div className="text-xs text-muted">
                     {c.author} · {ago(c.createdAt)}
                     {c.progress !== undefined && ` · ${c.progress}%`}
                   </div>
-                  <p className="mt-0.5 text-sm whitespace-pre-wrap">{c.summary}</p>
+                  <p className="mt-1 text-sm leading-relaxed whitespace-pre-wrap text-soft">{c.summary}</p>
                 </li>
               ))}
             </ol>
           </Section>
         )}
 
-        <div className="pt-4">
+        <div className="border-t border-line pt-6">
           <Button variant="danger" small icon="trash" onClick={del}>
             Elimina progetto
           </Button>
@@ -183,22 +194,13 @@ function ProjectPage() {
   );
 }
 
-function NewCheckpoint({ projectId, lastProgress }: { projectId: string; lastProgress?: number }) {
-  const [open, setOpen] = useState(false);
+function NewCheckpoint({ projectId, lastProgress, onClose }: { projectId: string; lastProgress?: number; onClose: () => void }) {
   const [summary, setSummary] = useState("");
   const [progress, setProgress] = useState<number | "">(lastProgress ?? "");
   const [next, setNext] = useState("");
   const [learnings, setLearnings] = useState<{ kind: LearningKind; text: string }[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-
-  if (!open) {
-    return (
-      <Button icon="plus" variant="ghost" onClick={() => setOpen(true)}>
-        Nuovo checkpoint
-      </Button>
-    );
-  }
 
   const save = async () => {
     setBusy(true);
@@ -219,7 +221,7 @@ function NewCheckpoint({ projectId, lastProgress }: { projectId: string; lastPro
       setSummary("");
       setNext("");
       setLearnings([]);
-      setOpen(false);
+      onClose();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Errore");
     } finally {
@@ -228,49 +230,51 @@ function NewCheckpoint({ projectId, lastProgress }: { projectId: string; lastPro
   };
 
   return (
-    <div className="gloss space-y-4 rounded-[1.5rem] p-4">
-      <Field label="A che punto siamo">
-        <textarea className={`${inputClass} min-h-24 resize-y`} value={summary} onChange={(e) => setSummary(e.target.value)} autoFocus placeholder="Cosa è fatto, cosa no, cosa blocca…" />
-      </Field>
-      <Field label="Avanzamento" hint={progress === "" ? "facoltativo" : `${progress}%`}>
-        <input type="range" min={0} max={100} step={5} value={progress === "" ? 0 : progress} onChange={(e) => setProgress(Number(e.target.value))} className="w-full accent-white" />
-      </Field>
-      <Field label="Prossimi passi" hint="uno per riga">
-        <textarea className={`${inputClass} min-h-20 resize-y`} value={next} onChange={(e) => setNext(e.target.value)} />
-      </Field>
-      <div className="space-y-2">
-        <div className="text-xs text-muted">Cose imparate da non dimenticare</div>
-        {learnings.map((l, i) => (
-          <div key={i} className="flex gap-2">
-            <select
-              className="field w-36 shrink-0 text-sm"
-              value={l.kind}
-              onChange={(e) => setLearnings((ls) => ls.map((x, j) => (j === i ? { ...x, kind: e.target.value as LearningKind } : x)))}
-            >
-              {LEARNING_KINDS.map((k) => (
-                <option key={k} value={k}>
-                  {KIND_LABEL[k]}
-                </option>
-              ))}
-            </select>
-            <input
-              className={inputClass}
-              value={l.text}
-              placeholder="Es. i video sotto i 15s convertono meglio"
-              onChange={(e) => setLearnings((ls) => ls.map((x, j) => (j === i ? { ...x, text: e.target.value } : x)))}
-            />
-            <button aria-label="Togli" onClick={() => setLearnings((ls) => ls.filter((_, j) => j !== i))} className="shrink-0 px-2 text-muted hover:text-fg">
-              <Icon name="close" className="size-4" />
-            </button>
-          </div>
-        ))}
-        <Button small variant="ghost" icon="plus" onClick={() => setLearnings((ls) => [...ls, { kind: "esperienza", text: "" }])}>
-          Aggiungi
-        </Button>
+    <div className="panel animate-rise overflow-hidden rounded-2xl border-white/[0.14]!">
+      <div className="space-y-5 p-4 md:p-5">
+        <Field label="A che punto siamo">
+          <textarea className={`${inputClass} min-h-24 resize-y`} value={summary} onChange={(e) => setSummary(e.target.value)} autoFocus placeholder="Cosa è fatto, cosa no, cosa blocca…" />
+        </Field>
+        <Field label="Avanzamento" hint={progress === "" ? "facoltativo" : `${progress}%`}>
+          <input type="range" min={0} max={100} step={5} value={progress === "" ? 0 : progress} onChange={(e) => setProgress(Number(e.target.value))} className="h-9 w-full accent-white" />
+        </Field>
+        <Field label="Prossimi passi" hint="uno per riga">
+          <textarea className={`${inputClass} min-h-20 resize-y`} value={next} onChange={(e) => setNext(e.target.value)} />
+        </Field>
+        <div className="space-y-2">
+          <div className="text-xs font-medium text-soft">Cose imparate da non dimenticare</div>
+          {learnings.map((l, i) => (
+            <div key={i} className="flex flex-col gap-2 sm:flex-row">
+              <select
+                className="field shrink-0 text-sm sm:w-40"
+                value={l.kind}
+                onChange={(e) => setLearnings((ls) => ls.map((x, j) => (j === i ? { ...x, kind: e.target.value as LearningKind } : x)))}
+              >
+                {LEARNING_KINDS.map((k) => (
+                  <option key={k} value={k}>
+                    {KIND_LABEL[k]}
+                  </option>
+                ))}
+              </select>
+              <div className="flex min-w-0 flex-1 gap-1">
+                <input
+                  className={inputClass}
+                  value={l.text}
+                  placeholder="Es. i video sotto i 15s convertono meglio"
+                  onChange={(e) => setLearnings((ls) => ls.map((x, j) => (j === i ? { ...x, text: e.target.value } : x)))}
+                />
+                <IconButton icon="close" label="Togli" onClick={() => setLearnings((ls) => ls.filter((_, j) => j !== i))} className="mt-1" />
+              </div>
+            </div>
+          ))}
+          <Button small variant="ghost" icon="plus" onClick={() => setLearnings((ls) => [...ls, { kind: "esperienza", text: "" }])}>
+            Aggiungi
+          </Button>
+        </div>
+        {error && <p className="text-sm text-danger">{error}</p>}
       </div>
-      {error && <p className="text-sm text-[#ec8585]">{error}</p>}
-      <div className="flex justify-end gap-2">
-        <Button variant="ghost" onClick={() => setOpen(false)}>
+      <div className="flex justify-end gap-2 border-t border-line px-4 py-3 md:px-5">
+        <Button variant="ghost" onClick={onClose}>
           Annulla
         </Button>
         <Button onClick={save} disabled={!summary.trim() || busy}>

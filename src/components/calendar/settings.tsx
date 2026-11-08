@@ -102,7 +102,7 @@ function AgentsTab({ meta, onToast }: { meta: CalMeta; onToast: (t: Toast) => vo
           ))}
         </select>
       </Field>
-      <p className="-mt-3 text-[12.5px] leading-relaxed text-muted">
+      <p className="-mt-3 text-xs leading-relaxed text-muted">
         Con un gestore, le modifiche degli <em>altri</em> agent diventano richieste: il gestore viene svegliato via email e decide lui. Tu modifichi sempre
         direttamente. Il gestore compare in questa lista appena scrive in bacheca o manda un heartbeat.
       </p>
@@ -140,7 +140,7 @@ function AgentsTab({ meta, onToast }: { meta: CalMeta; onToast: (t: Toast) => vo
           </select>
         </Field>
       </div>
-      <p className="-mt-3 text-[12.5px] text-muted">Dentro questa fascia si cercano gli spazi liberi (tuoi e degli agent).</p>
+      <p className="-mt-3 text-xs text-muted">Dentro questa fascia si cercano gli spazi liberi (tuoi e degli agent).</p>
 
       <div className="flex justify-end">
         <Button icon="check" onClick={save} disabled={!dirty || busy}>
@@ -149,7 +149,7 @@ function AgentsTab({ meta, onToast }: { meta: CalMeta; onToast: (t: Toast) => vo
       </div>
 
       <Block title="Da dare a un agent">
-        <pre className="matte rounded-xl p-3 font-mono text-[11.5px] leading-relaxed whitespace-pre-wrap text-[#c8c8c8]">{prompt}</pre>
+        <pre className="panel rounded-xl p-3.5 font-mono text-xs leading-relaxed whitespace-pre-wrap text-soft">{prompt}</pre>
         <Button
           small
           variant="ghost"
@@ -185,20 +185,20 @@ function CategoriesTab({ categories, onToast }: { categories: Category[]; onToas
 
   return (
     <div className="space-y-3">
-      <p className="text-[12.5px] leading-relaxed text-muted">
+      <p className="text-xs leading-relaxed text-muted">
         Le categorie colorano il calendario e dicono dove va il tuo tempo. Cambiale quando vuoi: la routine si costruisce strada facendo.
       </p>
       {list.map((c, i) => (
-        <div key={c.id || i} className="matte flex items-center gap-2 rounded-xl p-2">
-          <input value={c.name} onChange={(e) => edit(i, { name: e.target.value })} className="field h-9 min-w-0 flex-1 py-0 text-[14px]" maxLength={30} />
-          <div className="flex gap-1">
+        <div key={c.id || i} className="panel flex flex-wrap items-center gap-2 rounded-xl p-2 sm:flex-nowrap">
+          <input value={c.name} onChange={(e) => edit(i, { name: e.target.value })} className="field h-9 min-w-0 flex-1 basis-40 py-0 text-sm" maxLength={30} aria-label="Nome categoria" />
+          <div className="flex gap-1.5 px-1">
             {PALETTE.map((col) => (
               <button
                 key={col}
                 type="button"
                 aria-label={`Colore ${col}`}
                 onClick={() => edit(i, { color: col })}
-                className={`press size-5 rounded-full ${c.color === col ? "ring-2 ring-white ring-offset-2 ring-offset-black" : ""}`}
+                className={`press hit size-5 rounded-full ${c.color === col ? "ring-2 ring-white ring-offset-2 ring-offset-black" : ""}`}
                 style={{ background: col }}
               />
             ))}
@@ -207,7 +207,7 @@ function CategoriesTab({ categories, onToast }: { categories: Category[]; onToas
             type="button"
             onClick={() => setList((l) => l.filter((_, j) => j !== i))}
             aria-label={`Elimina ${c.name}`}
-            className="press grid size-8 place-items-center rounded-lg text-muted hover:bg-white/[0.06] hover:text-[#ec8585]"
+            className="press icon-btn ml-auto rounded-lg! hover:text-danger!"
           >
             <Icon name="trash" className="size-4" />
           </button>

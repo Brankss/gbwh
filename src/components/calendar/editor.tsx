@@ -173,7 +173,8 @@ export function EventEditor(p: {
           value={d.title}
           onChange={(e) => set({ title: e.target.value })}
           placeholder="Cosa fai?"
-          className="w-full bg-transparent text-[1.35rem] font-semibold tracking-tight outline-none placeholder:text-[#5a5a5a]"
+          aria-label="Titolo"
+          className="w-full border-b border-line bg-transparent pb-3 text-[1.375rem] font-semibold tracking-tight outline-none placeholder:text-[#5a5a5a] focus:border-white/25"
           maxLength={200}
         />
 
@@ -200,10 +201,12 @@ export function EventEditor(p: {
 
         {d.mode === "timed" && (
           <div className="space-y-2.5">
-            <div className="grid grid-cols-[1.4fr_1fr_1fr] gap-2">
-              <Field label="Giorno">
-                <input type="date" value={d.day} onChange={(e) => e.target.value && set({ day: e.target.value })} className={inputClass} />
-              </Field>
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,1fr)]">
+              <div className="col-span-2 sm:col-span-1">
+                <Field label="Giorno">
+                  <input type="date" value={d.day} onChange={(e) => e.target.value && set({ day: e.target.value })} className={inputClass} />
+                </Field>
+              </div>
               <Field label="Dalle">
                 <input type="time" step={300} value={d.startTime} onChange={(e) => e.target.value && setStart(e.target.value)} className={inputClass} />
               </Field>
@@ -211,18 +214,19 @@ export function EventEditor(p: {
                 <input type="time" step={300} value={d.endTime} onChange={(e) => e.target.value && set({ endTime: e.target.value })} className={inputClass} />
               </Field>
             </div>
-            <div className="scroll-thin -mx-1 flex gap-1.5 overflow-x-auto px-1 pb-1">
+            <div className="no-scrollbar -mx-5 flex gap-1.5 overflow-x-auto px-5">
               {DURATIONS.map((m) => (
                 <button
                   type="button"
                   key={m}
                   onClick={() => setDuration(m)}
-                  className={`press h-7 shrink-0 rounded-full px-3 text-xs ${duration === m ? "chrome font-semibold" : "border border-white/10 text-[#a8a8a8] hover:border-white/25 hover:text-fg"}`}
+                  aria-pressed={duration === m}
+                  className="press chip h-8! px-3! text-xs!"
                 >
                   {durationLabel(m)}
                 </button>
               ))}
-              {!DURATIONS.includes(duration) && <span className="grid h-7 shrink-0 place-items-center px-2 text-xs text-muted">{durationLabel(duration)}</span>}
+              {!DURATIONS.includes(duration) && <span className="grid h-8 shrink-0 place-items-center px-2 text-xs text-muted">{durationLabel(duration)}</span>}
             </div>
           </div>
         )}
@@ -281,7 +285,8 @@ export function EventEditor(p: {
                         else days.add(i + 1);
                         if (days.size) set({ repeat: { ...d.repeat!, days: [...days].sort() } });
                       }}
-                      className={`press h-8 flex-1 rounded-lg text-xs font-medium ${on ? "chrome" : "border border-white/10 text-[#a8a8a8]"}`}
+                      aria-pressed={!!on}
+                      className="press chip h-9 flex-1 justify-center rounded-lg! px-0! text-xs!"
                     >
                       {w}
                     </button>
@@ -297,7 +302,7 @@ export function EventEditor(p: {
                   value={d.repeat.until ?? ""}
                   min={d.day}
                   onChange={(e) => set({ repeat: { ...d.repeat!, until: e.target.value || undefined } })}
-                  className="field h-8 w-auto py-0 text-[13px]"
+                  className="field h-9 w-auto py-0 text-[13px]"
                 />
                 <span className="truncate">{d.repeat.until ? "" : "(per sempre)"}</span>
               </div>
@@ -306,7 +311,7 @@ export function EventEditor(p: {
         )}
 
         <div role="group" aria-label="Categoria" className="space-y-1.5">
-          <span className="block text-xs font-medium text-[#b4b4b4]">Categoria</span>
+          <span className="block text-xs font-medium text-soft">Categoria</span>
           <div className="flex flex-wrap gap-1.5">
             {p.categories.map((c) => {
               const on = d.category === c.id;
@@ -315,8 +320,9 @@ export function EventEditor(p: {
                   type="button"
                   key={c.id}
                   onClick={() => set({ category: on ? undefined : c.id })}
-                  className={`press flex h-8 items-center gap-1.5 rounded-full px-3 text-[13px] ${on ? "font-semibold text-fg" : "border border-white/10 text-[#a8a8a8] hover:border-white/25"}`}
-                  style={on ? { background: `color-mix(in oklab, ${c.color} 35%, #0c0c0c)`, boxShadow: `inset 0 0 0 1px ${c.color}` } : undefined}
+                  aria-pressed={on}
+                  className="press chip"
+                  style={on ? { background: `color-mix(in oklab, ${c.color} 28%, #0c0c0c)`, boxShadow: `inset 0 0 0 1px ${c.color}` } : undefined}
                 >
                   <span className="size-2 rounded-full" style={{ background: c.color }} />
                   {c.name}
@@ -330,7 +336,7 @@ export function EventEditor(p: {
           <Field label="Dove" hint="facoltativo">
             <input value={d.place} onChange={(e) => set({ place: e.target.value })} placeholder="Palestra, casa, Milano…" className={inputClass} maxLength={200} />
           </Field>
-          <label className="flex items-center gap-2.5 self-end rounded-xl border border-white/10 px-3 py-2.5 text-sm">
+          <label className="field flex cursor-pointer items-center gap-2.5 self-end text-sm">
             <input type="checkbox" checked={d.done} onChange={(e) => set({ done: e.target.checked })} className="size-4 accent-white" />
             Fatto
           </label>
@@ -355,15 +361,9 @@ export function EventEditor(p: {
 
 export function Segmented<T extends string>({ value, onChange, options }: { value: T; onChange: (v: T) => void; options: { value: T; label: string }[] }) {
   return (
-    <div className="matte flex gap-1 rounded-2xl p-1">
+    <div className="seg flex! w-full">
       {options.map((o) => (
-        <button
-          type="button"
-          key={o.value}
-          onClick={() => onChange(o.value)}
-          aria-pressed={o.value === value}
-          className={`press h-8 flex-1 rounded-xl px-2 text-[13px] font-medium whitespace-nowrap ${o.value === value ? "gloss text-fg" : "text-muted hover:text-fg"}`}
-        >
+        <button type="button" key={o.value} onClick={() => onChange(o.value)} aria-pressed={o.value === value} className="press seg-item flex-1 px-2! text-[13px]!">
           {o.label}
         </button>
       ))}

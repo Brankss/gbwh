@@ -12,10 +12,10 @@ export default function CalendarPage() {
     return (
       <>
         <PageHeader wide title="Calendario" />
-        <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-3 px-3 pt-3 pb-3 md:px-6">
-          <div className="h-10 skeleton rounded-2xl" />
-          <div className="h-12 skeleton rounded-2xl" />
-          <div className="flex-1 skeleton rounded-[1.25rem]" />
+        <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-3 px-3 pt-3 pb-3 md:px-8 md:pt-5">
+          <div className="skeleton h-10 rounded-xl" />
+          <div className="skeleton h-11 rounded-xl" />
+          <div className="skeleton flex-1 rounded-2xl" />
         </div>
       </>
     );

@@ -12,24 +12,27 @@ export default function LoginPage() {
       {/* Mercurio nero, grande, dietro la porta d'ingresso */}
       <Liquid variant="hero" />
 
-      <form action={action} className="card relative w-full max-w-sm space-y-6 p-7 animate-pop">
-        <div className="space-y-1.5">
+      <form action={action} className="card relative w-full max-w-sm space-y-7 p-6 animate-pop sm:p-8">
+        <div className="space-y-2">
           <h1 className="chrome-text text-4xl font-black tracking-tighter">Bentornato</h1>
           <p className="text-sm text-muted">Il tuo hub ti aspetta.</p>
         </div>
-        <input
-          name="password"
-          type="password"
-          autoFocus
-          required
-          autoComplete="current-password"
-          placeholder="Password"
-          className="field w-full"
-        />
-        {error && <p className="text-sm text-[#ec8585]">{error}</p>}
-        <button disabled={pending} className="chrome btn-primary w-full">
-          {pending ? "Entro…" : "Entra"}
-        </button>
+        <div className="space-y-3">
+          <input
+            name="password"
+            type="password"
+            autoFocus
+            required
+            autoComplete="current-password"
+            placeholder="Password"
+            aria-label="Password"
+            className="field h-12 w-full text-[15px]"
+          />
+          {error && <p className="text-sm text-danger">{error}</p>}
+          <button disabled={pending} className="chrome btn-primary press w-full">
+            {pending ? "Entro…" : "Entra"}
+          </button>
+        </div>
       </form>
     </main>
   );

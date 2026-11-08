@@ -226,16 +226,16 @@ export function Chat() {
       <Avatar name="Note" size={36}>
         <PinIcon />
       </Avatar>
-      <div className="min-w-0">
-        <div className="font-medium leading-tight">Note per i bot</div>
+      <div className="min-w-0 flex-1">
+        <div className="truncate leading-tight font-semibold">Note per i bot</div>
         <div className="truncate text-xs text-muted">per ogni nota scegli quali bot possono leggerla</div>
       </div>
     </>
   ) : (
     <>
       <Avatar name={bot.name} size={36} />
-      <div className="min-w-0">
-        <div className="font-medium leading-tight">{bot.name}</div>
+      <div className="min-w-0 flex-1">
+        <div className="truncate leading-tight font-semibold">{bot.name}</div>
         <div className="truncate text-xs text-muted">{status}</div>
         <WakeLine botId={bot.id} />
       </div>
@@ -243,79 +243,71 @@ export function Chat() {
     </>
   );
 
+  // Riga della lista (note o bot): stessa misura e stesso stato "scelto" per tutte.
+  const rowCls = (selected: boolean) =>
+    `press flex w-full items-center gap-3 rounded-xl px-2.5 py-2.5 text-left ${selected ? "bg-white/[0.07]" : "hover:bg-white/[0.035] active:bg-white/[0.05]"}`;
+
   return (
     <div className="flex min-h-0 flex-1 overflow-hidden">
       {/* Lista chat: sidebar su desktop, home su mobile */}
-      <aside
-        className={`${mobileDetail ? "hidden" : "flex"} w-full flex-col bg-black/40 md:flex md:w-72 md:shrink-0 md:border-r md:border-white/[0.06]`}
-      >
-        <div className="flex items-center gap-2 px-2 pt-3 pb-3 md:px-5 md:pt-5">
+      <aside className={`${mobileDetail ? "hidden" : "flex"} w-full flex-col md:flex md:w-80 md:shrink-0 md:border-r md:border-line md:bg-black/30`}>
+        <div className="glass flex items-center gap-2 border-b border-line py-3 pr-3 pl-2 md:h-[76px] md:bg-transparent md:px-5 md:py-0 md:backdrop-blur-none">
           <MenuButton />
-          <h1 className="chrome-text text-[1.35rem] leading-tight font-bold tracking-[-0.02em] md:text-[1.75rem]">Agenti</h1>
+          <h1 className="chrome-text text-[1.375rem] leading-tight font-bold tracking-[-0.02em] md:text-[1.75rem]">Agenti</h1>
         </div>
-        <nav className="scroll-thin flex flex-1 flex-col gap-1 overflow-y-auto px-3 pb-24 md:pb-6">
-          <button
-            onClick={() => open("notes")}
-            className={`press flex items-center gap-3 rounded-2xl px-3 py-2.5 text-left ${
-              onNotes && isDesktop ? "gloss" : "border border-transparent hover:bg-white/[0.04] active:bg-white/[0.06]"
-            }`}
-          >
+        <nav className="scroll-thin flex flex-1 flex-col overflow-y-auto px-2 pt-3 pb-24 md:px-3 md:pb-6">
+          <button onClick={() => open("notes")} className={rowCls(onNotes && isDesktop)}>
             <Avatar name="Note" size={44}>
               <PinIcon />
             </Avatar>
             <div className="min-w-0 flex-1">
               <div className="font-medium">Note per i bot</div>
-              <p className="truncate text-sm text-muted">
+              <p className="truncate text-[13px] text-muted">
                 {notes?.length ? `${notes.length} ${notes.length === 1 ? "nota" : "note"} in bacheca` : "Bacheca per i bot"}
               </p>
             </div>
           </button>
 
-          <div className="mt-5 mb-1.5 flex items-center gap-3 px-3 text-[11px] font-semibold tracking-[0.14em] text-[#a8a8a8] uppercase">
+          <div className="eyebrow mt-6 mb-2 flex items-center justify-between px-2.5">
             <span>Bot</span>
-            <span aria-hidden className="hairline flex-1" />
             <span className="tabular-nums">{bots.length}</span>
           </div>
 
-          {sortedBots.map((b) => {
-            const lastMsg = inbox?.[b.id]?.at(-1);
-            const selected = b.id === active && !onNotes && isDesktop;
-            return (
-              <button
-                key={b.id}
-                onClick={() => open(b.id)}
-                className={`press flex items-center gap-3 rounded-2xl px-3 py-2.5 text-left ${
-                  selected ? "gloss" : "border border-transparent hover:bg-white/[0.04] active:bg-white/[0.06]"
-                }`}
-              >
-                <Avatar name={b.name} size={44} />
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-baseline justify-between gap-2">
-                    <span className="font-medium">{b.name}</span>
-                    {lastMsg && <span className="text-[11px] text-muted">{formatShort(lastMsg.ts)}</span>}
+          <div className="flex flex-col gap-0.5">
+            {sortedBots.map((b) => {
+              const lastMsg = inbox?.[b.id]?.at(-1);
+              const selected = b.id === active && !onNotes && isDesktop;
+              return (
+                <button key={b.id} onClick={() => open(b.id)} className={rowCls(selected)}>
+                  <Avatar name={b.name} size={44} />
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-baseline justify-between gap-2">
+                      <span className="truncate font-medium">{b.name}</span>
+                      {lastMsg && <span className={`shrink-0 text-xs ${unread[b.id] > 0 ? "text-fg" : "text-muted"}`}>{formatShort(lastMsg.ts)}</span>}
+                    </div>
+                    <div className="flex items-center justify-between gap-2">
+                      <p className={`truncate text-[13px] ${unread[b.id] > 0 ? "text-soft" : "text-muted"}`}>
+                        {lastMsg ? `${lastMsg.from === "me" ? "Tu: " : ""}${preview(lastMsg)}` : "Nessun messaggio"}
+                      </p>
+                      {unread[b.id] > 0 && <Badge count={unread[b.id]} />}
+                    </div>
                   </div>
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="truncate text-sm text-muted">
-                      {lastMsg ? `${lastMsg.from === "me" ? "Tu: " : ""}${preview(lastMsg)}` : "Nessun messaggio"}
-                    </p>
-                    {unread[b.id] > 0 && <Badge count={unread[b.id]} />}
-                  </div>
-                </div>
-              </button>
-            );
-          })}
+                </button>
+              );
+            })}
+          </div>
         </nav>
         <WakeSettings />
       </aside>
 
       <main className={`${mobileDetail ? "flex" : "hidden"} min-w-0 flex-1 flex-col md:flex`}>
-        <header className="glass border-b border-white/[0.06]">
+        <header className="glass border-b border-line">
           {/* Mobile: indietro alla lista */}
-          <div className="flex items-center gap-2 py-2 pr-4 pl-1.5 md:hidden">
+          <div className="flex min-h-[60px] items-center gap-2 py-2 pr-3 pl-1.5 md:hidden">
             <button
               onClick={back}
               aria-label="Indietro"
-              className="flex h-9 shrink-0 items-center gap-0.5 rounded-full pr-2 pl-1 press text-[#b4b4b4] hover:bg-white/[0.07] hover:text-fg"
+              className="press flex h-9 shrink-0 items-center gap-0.5 rounded-full pr-1.5 pl-1 text-soft hover:bg-white/[0.07] hover:text-fg"
             >
               <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
                 <path d="m15 18-6-6 6-6" />
@@ -324,7 +316,7 @@ export function Chat() {
             </button>
             {title}
           </div>
-          <div className="hidden items-center gap-3 px-6 py-3.5 md:flex">{title}</div>
+          <div className="hidden h-[76px] items-center gap-3 px-6 md:flex">{title}</div>
         </header>
 
         {onNotes ? (
@@ -476,14 +468,14 @@ function Bubble({
       {m.text && (
         <div
           className={`max-w-[85%] whitespace-pre-wrap break-words px-3.5 py-2 text-[15px] leading-relaxed md:max-w-[70%] ${
-            mine ? "gloss rounded-[1.25rem] rounded-br-md" : "matte rounded-[1.25rem] rounded-bl-md"
+            mine ? "rounded-[20px] rounded-br-md bg-[#262626]/95 text-[#f5f5f5]" : "rounded-[20px] rounded-bl-md border border-line bg-[#0f0f0f]/90"
           } ${m.media?.length ? "mt-1" : ""} ${m.pending ? "opacity-60" : ""} ${m.failed ? "opacity-70 ring-1 ring-red-500/60" : ""} transition-opacity`}
         >
           {m.text}
         </div>
       )}
       {m.failed ? (
-        <button onClick={() => onRetry(m)} className="mt-1 text-xs text-[#ec8585] hover:underline">
+        <button onClick={() => onRetry(m)} className="hit mt-1 px-1 text-xs text-danger hover:underline">
           Non consegnato · Riprova
         </button>
       ) : (
@@ -500,7 +492,7 @@ function Bubble({
 
 function MediaItem({ media, mine, onOpenImage }: { media: Media; mine: boolean; onOpenImage: (src: string) => void }) {
   const [broken, setBroken] = useState(false);
-  const frame = `matte mt-1 overflow-hidden rounded-[1.25rem] ${mine ? "rounded-br-md" : "rounded-bl-md"}`;
+  const frame = `mt-1 overflow-hidden rounded-[20px] border border-line bg-[#0f0f0f]/90 ${mine ? "rounded-br-md" : "rounded-bl-md"}`;
 
   if (broken) {
     return (
@@ -556,13 +548,13 @@ function Lightbox({ src, onClose }: { src: string; onClose: () => void }) {
       className="fixed inset-0 z-40 grid cursor-zoom-out place-items-center bg-black/90 p-4 backdrop-blur-md animate-pop"
     >
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={src} alt="" referrerPolicy="no-referrer" className="max-h-[92dvh] max-w-full rounded-2xl object-contain" />
+      <img src={src} alt="" referrerPolicy="no-referrer" className="max-h-[92dvh] max-w-full rounded-xl object-contain" />
       <a
         href={src}
         target="_blank"
         rel="noreferrer"
         onClick={(e) => e.stopPropagation()}
-        className="gloss absolute top-4 right-4 rounded-full px-3.5 py-1.5 text-sm"
+        className="absolute top-4 right-4 flex h-9 items-center rounded-full bg-black/60 px-4 text-sm font-medium shadow-[inset_0_0_0_1px_rgb(255_255_255/0.15)] backdrop-blur-md hover:bg-black/80"
       >
         Apri originale
       </a>
@@ -580,7 +572,7 @@ function Typing({ since }: { since: number }) {
   if (!visible) return null;
   return (
     <div className="mt-3 flex animate-pop">
-      <div className="matte flex gap-1 rounded-[1.25rem] rounded-bl-md px-4 py-3.5">
+      <div className="flex gap-1 rounded-[20px] rounded-bl-md border border-line bg-[#0f0f0f]/90 px-4 py-3.5">
         {[0, 1, 2].map((i) => (
           <span key={i} className="size-1.5 rounded-full bg-muted animate-dot" style={{ animationDelay: `${i * 0.15}s` }} />
         ))}
@@ -615,7 +607,7 @@ function Composer({ name, onSend }: { name: string; onSend: (text: string) => vo
           e.preventDefault();
           submit();
         }}
-        className="gloss mx-auto flex max-w-3xl items-end gap-2 rounded-[1.5rem] p-1.5 pl-4 transition-[border-color] focus-within:border-[#3a3a3a]"
+        className="mx-auto flex max-w-3xl items-end gap-2 rounded-[22px] border border-white/10 bg-[#0d0d0d]/90 p-1.5 pl-4 backdrop-blur-xl transition-[border-color,box-shadow] focus-within:border-white/25 focus-within:shadow-[0_0_0_3px_var(--ring)]"
       >
         <textarea
           ref={ref}
@@ -631,7 +623,7 @@ function Composer({ name, onSend }: { name: string; onSend: (text: string) => vo
           }}
           placeholder={`Scrivi a ${name}…`}
           aria-label={`Messaggio per ${name}`}
-          className="scroll-thin max-h-[200px] flex-1 resize-none bg-transparent py-2 text-[15px] leading-relaxed outline-none placeholder:text-muted"
+          className="scroll-thin max-h-[200px] min-h-10 flex-1 resize-none bg-transparent py-2 text-[15px] leading-relaxed outline-none placeholder:text-muted"
         />
         <button
           type="submit"
@@ -652,7 +644,7 @@ function Composer({ name, onSend }: { name: string; onSend: (text: string) => vo
 
 function Badge({ count }: { count: number }) {
   return (
-    <span className="chrome grid h-5 min-w-5 place-items-center rounded-full px-1.5 text-[11px] font-bold animate-pop">
+    <span className="chrome grid h-[18px] min-w-[18px] shrink-0 place-items-center rounded-full px-1 text-[10.5px] font-bold tabular-nums animate-pop">
       {count > 99 ? "99+" : count}
     </span>
   );
@@ -660,8 +652,10 @@ function Badge({ count }: { count: number }) {
 
 function DaySeparator({ ts }: { ts: number }) {
   return (
-    <div className="my-4 flex justify-center">
-      <span className="matte rounded-full px-3 py-1 text-[11px] font-medium text-muted">{formatDay(ts)}</span>
+    <div className="my-5 flex items-center gap-3">
+      <span aria-hidden className="h-px flex-1 bg-gradient-to-r from-transparent to-white/10" />
+      <span className="text-[11px] font-medium text-muted">{formatDay(ts)}</span>
+      <span aria-hidden className="h-px flex-1 bg-gradient-to-l from-transparent to-white/10" />
     </div>
   );
 }
@@ -670,7 +664,7 @@ function Skeleton() {
   return (
     <div className="flex flex-col gap-3">
       {["w-48", "ml-auto w-36", "w-64", "ml-auto w-52"].map((w, i) => (
-        <div key={i} className={`h-10 skeleton rounded-[1.25rem] ${w}`} />
+        <div key={i} className={`skeleton h-10 rounded-[20px] ${w}`} />
       ))}
     </div>
   );

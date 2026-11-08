@@ -1,9 +1,8 @@
 "use client";
 
-import Link from "next/link";
 import { useMemo, useState } from "react";
 import { Icon } from "@/components/icons";
-import { Empty, PageBody, PageHeader, Tabs, inputClass } from "@/components/kit";
+import { Empty, IconButton, PageBody, PageHeader, Tabs, inputClass } from "@/components/kit";
 import { CompareGroup, SERIES } from "@/components/model-charts";
 import { KindTabs, NoModelsData, SourceBar, useModels } from "@/components/models-common";
 import { formatScore, type ModelKind } from "@/lib/models";
@@ -76,31 +75,29 @@ export default function ComparePage() {
         wide
         title="Confronta modelli"
         subtitle={`Scegli fino a ${MAX_PICKS} modelli`}
-        back={
-          <Link href="/modelli" aria-label="Modelli" className="grid size-9 shrink-0 place-items-center press rounded-full text-[#b4b4b4] hover:bg-white/[0.07] hover:text-fg">
-            <Icon name="back" />
-          </Link>
-        }
+        back={<IconButton href="/modelli" icon="back" label="Modelli" />}
       />
       <PageBody wide>
-        <KindTabs value={kind} onChange={setKind} data={data} />
-        {res && <SourceBar data={data} configured={res.configured} onSynced={() => mutate()} />}
+        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <KindTabs value={kind} onChange={setKind} data={data} />
+          {res && <SourceBar data={data} configured={res.configured} onSynced={() => mutate()} />}
+        </div>
 
         {!res ? (
-          <div className="h-60 skeleton rounded-[1.25rem]" />
+          <div className="skeleton h-60 rounded-2xl" />
         ) : !category?.models.length ? (
           <NoModelsData configured={res.configured} />
         ) : (
-          <div className="grid gap-5 lg:grid-cols-[18rem_1fr]">
+          <div className="grid gap-6 lg:grid-cols-[18rem_minmax(0,1fr)] lg:gap-8">
             {/* Scelta modelli */}
             <aside className="space-y-3">
               {picks.length > 0 && (
                 <ul className="flex flex-wrap gap-1.5" aria-label="Legenda">
                   {picks.map(({ model, slot }) => (
-                    <li key={model.id} className="gloss flex items-center gap-1.5 rounded-full py-0.5 pr-1 pl-2.5 text-sm">
+                    <li key={model.id} className="flex h-8 items-center gap-1.5 rounded-full bg-white/[0.06] pr-0.5 pl-2.5 text-[13px] shadow-[inset_0_0_0_1px_rgb(255_255_255/0.08)]">
                       <span className="size-2.5 rounded-[3px]" style={{ background: SERIES[slot] }} />
                       <span className="max-w-[10rem] truncate">{model.name}</span>
-                      <button onClick={() => toggle(model.id)} aria-label={`Togli ${model.name}`} className="grid size-5 place-items-center rounded-full text-muted hover:text-fg">
+                      <button onClick={() => toggle(model.id)} aria-label={`Togli ${model.name}`} className="hit grid size-7 place-items-center rounded-full text-muted hover:bg-white/[0.08] hover:text-fg">
                         <Icon name="close" className="size-3" />
                       </button>
                     </li>
@@ -108,7 +105,7 @@ export default function ComparePage() {
                 </ul>
               )}
               <input className={inputClass} value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Cerca modello o azienda…" />
-              <ul className="matte scroll-thin max-h-[50dvh] space-y-0.5 overflow-y-auto rounded-2xl p-1 lg:max-h-[65dvh]">
+              <ul className="panel scroll-thin max-h-[50dvh] space-y-px overflow-y-auto rounded-2xl p-1.5 lg:max-h-[65dvh]">
                 {results.map((m) => {
                   const slot = slots.indexOf(m.id);
                   const full = slot < 0 && picks.length >= MAX_PICKS;
@@ -117,10 +114,10 @@ export default function ComparePage() {
                       <button
                         onClick={() => toggle(m.id)}
                         disabled={full}
-                        className="flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2 text-left text-sm transition-colors hover:bg-white/5 disabled:opacity-40"
+                        className="flex min-h-11 w-full items-center gap-3 rounded-xl px-2.5 py-1.5 text-left text-sm transition-colors hover:bg-white/[0.05] disabled:opacity-40"
                       >
                         <span
-                          className={`grid size-5 shrink-0 place-items-center rounded-full ${slot >= 0 ? "" : "border border-line"}`}
+                          className={`grid size-5 shrink-0 place-items-center rounded-full text-white ${slot >= 0 ? "" : "border border-white/20"}`}
                           style={slot >= 0 ? { background: SERIES[slot] } : undefined}
                         >
                           {slot >= 0 && <Icon name="check" className="size-3" />}
@@ -163,7 +160,7 @@ export default function ComparePage() {
                       ))}
                     </div>
                   ) : (
-                    <div className="matte overflow-x-auto rounded-[1.25rem]">
+                    <div className="panel overflow-x-auto rounded-2xl">
                       <table className="w-full text-sm">
                         <thead>
                           <tr className="border-b border-line text-left text-xs text-muted">
@@ -178,7 +175,7 @@ export default function ComparePage() {
                         </thead>
                         <tbody>
                           {benchmarks.map((b) => (
-                            <tr key={b.key} className="border-b border-line/60 last:border-0">
+                            <tr key={b.key} className="border-b border-line last:border-0">
                               <td className="px-4 py-2.5 whitespace-nowrap">{b.label}</td>
                               {picks.map(({ model }) => (
                                 <td key={model.id} className="px-3 py-2.5 text-right text-muted tabular-nums">

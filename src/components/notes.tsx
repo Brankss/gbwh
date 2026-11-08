@@ -39,14 +39,14 @@ export function Notes({ notes, bots, onChanged }: { notes: Note[] | null; bots: 
   return (
     <BotsContext.Provider value={bots}>
     <div className="scroll-thin flex-1 overflow-y-auto overscroll-contain">
-      <div className="mx-auto max-w-3xl space-y-5 px-4 py-6 pb-28 md:px-6">
+      <div className="mx-auto max-w-3xl space-y-6 px-4 py-6 pb-28 md:px-6 md:py-8">
         <NewNote api={api} />
-        {error && <p className="text-sm text-[#ec8585]">{error}</p>}
+        {error && <p className="text-sm text-danger">{error}</p>}
 
         {notes === null ? (
           <div className="grid gap-3 sm:grid-cols-2">
             {[0, 1].map((i) => (
-              <div key={i} className="h-28 skeleton rounded-[1.25rem]" />
+              <div key={i} className="skeleton h-28 rounded-2xl" />
             ))}
           </div>
         ) : notes.length === 0 ? (
@@ -91,7 +91,7 @@ function NewNote({ api }: { api: Api }) {
         e.preventDefault();
         publish();
       }}
-      className="gloss relative z-10 space-y-3 rounded-[1.5rem] p-4"
+      className="panel relative z-10 rounded-2xl focus-within:border-white/20"
     >
       <textarea
         ref={ref}
@@ -107,13 +107,17 @@ function NewNote({ api }: { api: Api }) {
         }}
         placeholder="Scrivi una nota per i bot…"
         aria-label="Nuova nota"
-        className="scroll-thin block w-full resize-none bg-transparent text-[15px] leading-relaxed outline-none placeholder:text-muted"
+        className="scroll-thin block w-full resize-none bg-transparent px-4 pt-4 pb-2 text-[15px] leading-relaxed outline-none placeholder:text-muted"
       />
-      <AudiencePicker value={visibleTo} onChange={setVisibleTo} />
-      <div className="flex justify-end">
+      <div className="px-4 pb-4">
+        <AudiencePicker value={visibleTo} onChange={setVisibleTo} />
+      </div>
+      <div className="flex items-center justify-between gap-3 border-t border-line px-4 py-2.5">
+        <span className="hidden text-xs text-muted sm:inline">⌘/Ctrl + Invio per pubblicare</span>
+        <span className="sm:hidden" />
         <button
           disabled={!text.trim() || busy}
-          className="orb rounded-full px-4 py-1.5 text-sm font-medium transition-all enabled:hover:brightness-150 enabled:active:scale-95 disabled:opacity-30"
+          className="press hit chrome h-8 rounded-full px-4 text-[13px] font-semibold disabled:cursor-not-allowed disabled:opacity-35"
         >
           {busy ? "Pubblico…" : "Pubblica"}
         </button>
@@ -142,7 +146,7 @@ function NoteCard({ note, api }: { note: Note; api: Api }) {
 
   return (
     <article
-      className={`matte relative mb-3 break-inside-avoid space-y-3 rounded-[1.25rem] p-4 animate-pop ${editing ? "z-20" : ""}`}
+      className={`panel relative mb-3 break-inside-avoid space-y-3 rounded-2xl p-4 animate-pop ${editing ? "z-20 border-white/20!" : ""}`}
     >
       {editing ? (
         <>
@@ -164,29 +168,29 @@ function NoteCard({ note, api }: { note: Note; api: Api }) {
         </>
       )}
 
-      <div className="flex items-center justify-between gap-2 text-[11px] text-muted">
+      <div className="-mb-1 flex items-center justify-between gap-2 border-t border-line pt-2 text-xs text-muted">
         <span>
           {dateFmt.format(note.updatedAt ?? note.ts)}
           {note.updatedAt ? " · modificato" : ""}
         </span>
-        <div className="flex gap-3">
+        <div className="-mr-2 flex gap-0.5">
           {editing ? (
             <>
-              <button onClick={() => setEditing(false)} className="hover:text-fg">
+              <button onClick={() => setEditing(false)} className="press h-8 rounded-full px-2.5 hover:bg-white/[0.06] hover:text-fg">
                 Annulla
               </button>
-              <button onClick={save} className="font-medium text-fg">
+              <button onClick={save} className="press h-8 rounded-full px-2.5 font-semibold text-fg hover:bg-white/[0.06]">
                 Salva
               </button>
             </>
           ) : (
             <>
-              <button onClick={startEdit} className="hover:text-fg">
+              <button onClick={startEdit} className="press h-8 rounded-full px-2.5 hover:bg-white/[0.06] hover:text-fg">
                 Modifica
               </button>
               <button
                 onClick={() => confirm("Eliminare questa nota?") && api("DELETE", undefined, `?id=${note.id}`)}
-                className="hover:text-[#ec8585]"
+                className="press h-8 rounded-full px-2.5 hover:bg-[#e66767]/10 hover:text-danger"
               >
                 Elimina
               </button>
@@ -206,7 +210,7 @@ function AudienceView({ value }: { value: BotId[] }) {
     <div className="flex flex-wrap items-center gap-1.5 text-[11px]">
       <span className="text-muted">Visibile a</span>
       {value.map((id) => (
-        <span key={id} className="gloss flex items-center gap-1 rounded-full py-0.5 pr-2 pl-0.5">
+        <span key={id} className="flex items-center gap-1 rounded-full bg-white/[0.06] py-0.5 pr-2 pl-0.5">
           <Avatar name={nameOf(id)} size={16} />
           {nameOf(id)}
         </span>
@@ -268,9 +272,9 @@ function AudiencePicker({ value, onChange }: { value: BotId[]; onChange: (v: Bot
 
   return (
     <div ref={wrap} className="relative">
-      <div className="mb-1.5 flex items-center justify-between text-xs text-muted">
-        <span>Chi può vederlo</span>
-        <span>{value.length ? `${value.length} di ${bots.length}` : "nessuno = solo tu"}</span>
+      <div className="mb-1.5 flex items-center justify-between text-xs">
+        <span className="font-medium text-soft">Chi può vederlo</span>
+        <span className="text-muted">{value.length ? `${value.length} di ${bots.length}` : "nessuno = solo tu"}</span>
       </div>
 
       <div
@@ -279,11 +283,11 @@ function AudiencePicker({ value, onChange }: { value: BotId[]; onChange: (v: Bot
           input.current?.focus();
         }}
         className={`field relative flex min-h-11 cursor-text flex-wrap items-center gap-1.5 py-1.5! pr-9! pl-1.5! ${
-          open ? "border-[#2e2e2e]! shadow-[0_0_0_4px_var(--ring)]" : ""
+          open ? "border-white/25! shadow-[0_0_0_3px_var(--ring)]" : ""
         }`}
       >
         {value.map((id) => (
-          <span key={id} className="gloss flex items-center gap-1.5 rounded-full py-0.5 pr-1 pl-0.5 text-sm animate-pop">
+          <span key={id} className="flex items-center gap-1.5 rounded-full bg-white/[0.08] py-0.5 pr-1 pl-0.5 text-sm shadow-[inset_0_0_0_1px_rgb(255_255_255/0.08)] animate-pop">
             <Avatar name={nameOf(id)} size={20} />
             {nameOf(id)}
             <button
@@ -334,15 +338,15 @@ function AudiencePicker({ value, onChange }: { value: BotId[]; onChange: (v: Bot
       </div>
 
       {open && (
-        <div ref={menu} className="matte absolute inset-x-0 top-full z-30 mt-1.5 scroll-mb-6 overflow-hidden rounded-2xl shadow-[0_16px_40px_-12px_rgb(0_0_0/0.9)] animate-pop">
-          <div className="flex items-center gap-3 border-b border-line px-3 py-2 text-xs text-muted">
-            <button type="button" onClick={() => onChange(all)} className="hover:text-fg">
+        <div ref={menu} className="card absolute inset-x-0 top-full z-30 mt-1.5 scroll-mb-6 overflow-hidden rounded-2xl! animate-pop">
+          <div className="flex items-center gap-1 border-b border-line px-2 py-1.5 text-xs text-muted">
+            <button type="button" onClick={() => onChange(all)} className="h-8 rounded-full px-2.5 hover:bg-white/[0.06] hover:text-fg">
               Tutti
             </button>
-            <button type="button" onClick={() => onChange([])} className="hover:text-fg">
+            <button type="button" onClick={() => onChange([])} className="h-8 rounded-full px-2.5 hover:bg-white/[0.06] hover:text-fg">
               Nessuno
             </button>
-            <button type="button" onClick={() => setOpen(false)} className="gloss ml-auto rounded-full px-3 py-1 font-medium">
+            <button type="button" onClick={() => setOpen(false)} className="ml-auto h-8 rounded-full bg-white/[0.08] px-3.5 font-medium text-fg hover:bg-white/[0.12]">
               Fatto
             </button>
           </div>
@@ -360,7 +364,7 @@ function AudiencePicker({ value, onChange }: { value: BotId[]; onChange: (v: Bot
                     toggle(b.id);
                     input.current?.focus();
                   }}
-                  className={`flex cursor-pointer items-center gap-2.5 rounded-xl px-2.5 py-2 text-sm transition-colors ${
+                  className={`flex min-h-11 cursor-pointer items-center gap-2.5 rounded-xl px-2.5 py-1.5 text-sm transition-colors ${
                     i === cursor ? "bg-white/6" : ""
                   }`}
                 >

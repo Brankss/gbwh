@@ -25,7 +25,7 @@ export function WakeLine({ botId }: { botId: string }) {
   if (!data?.configured || !log) return null;
   if (log.result === "failed") {
     return (
-      <div className="truncate text-[11px] text-[#ec8585]" title={log.error}>
+      <div className="truncate text-[11px] text-danger" title={log.error}>
         ⚡ sveglia non riuscita · {log.error}
       </div>
     );
@@ -62,7 +62,7 @@ export function WakeButton({ botId, name }: { botId: string; name: string }) {
       disabled={state === "busy"}
       title={data.configured ? `Sveglia ${name} adesso via email` : "Sveglia email non ancora configurata"}
       aria-label={`Sveglia ${name}`}
-      className="press ml-auto flex h-8 shrink-0 items-center gap-1.5 rounded-full border border-white/10 px-3 text-xs font-medium text-[#b4b4b4] hover:border-white/25 hover:bg-white/[0.05] hover:text-fg disabled:opacity-50"
+      className="press hit flex h-8 shrink-0 items-center gap-1.5 rounded-full px-3 text-[13px] font-medium text-soft shadow-[inset_0_0_0_1px_rgb(255_255_255/0.1)] hover:bg-white/[0.05] hover:text-fg disabled:opacity-50"
     >
       <span aria-hidden>⚡</span>
       {state === "busy"
@@ -91,14 +91,14 @@ export function WakeSettings() {
   };
 
   return (
-    <div className="mx-3 mt-4 mb-2 space-y-1.5 matte rounded-2xl [html[data-nf-badge]_&]:mb-16 px-3 py-2.5 text-xs text-muted">
+    <div className="space-y-1.5 border-t border-line px-5 py-3.5 text-xs leading-relaxed text-muted [html[data-nf-badge]_&]:pb-16">
       <div className="flex items-center gap-2">
         <span aria-hidden>⚡</span>
         <span className="flex-1">
           Sveglia email: {data.configured ? <span className="text-fg">attiva</span> : "non configurata"}
         </span>
         {data.configured && (
-          <button onClick={run} disabled={test === "busy"} className="font-medium text-fg underline-offset-2 hover:underline disabled:opacity-50">
+          <button onClick={run} disabled={test === "busy"} className="hit rounded-full px-2 py-1 font-medium text-fg hover:bg-white/[0.06] disabled:opacity-50">
             {test === "busy" ? "Provo…" : "Prova"}
           </button>
         )}
@@ -107,7 +107,7 @@ export function WakeSettings() {
       {!data.configured && (
         <div className="space-y-1">
           <div>
-            Il sito non trova: <span className="font-mono text-[#ec8585]">{data.missing.join(", ")}</span>
+            Il sito non trova: <span className="font-mono text-danger">{data.missing.join(", ")}</span>
           </div>
           {data.similar.length > 0 && (
             <div>
@@ -118,7 +118,7 @@ export function WakeSettings() {
         </div>
       )}
       {test && test !== "busy" && (
-        <div className={test.ok ? "text-fg" : "text-[#ec8585]"}>{test.ok ? "✓ Server di posta raggiungibile e credenziali ok." : `✕ ${test.error}`}</div>
+        <div className={test.ok ? "text-fg" : "text-danger"}>{test.ok ? "✓ Server di posta raggiungibile e credenziali ok." : `✕ ${test.error}`}</div>
       )}
     </div>
   );
