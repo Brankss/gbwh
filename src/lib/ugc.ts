@@ -193,6 +193,22 @@ export type UgcLearning = Doc & {
   by: string;
 };
 
+/**
+ * Domanda di un bot a Branko: rara, solo quando serve davvero (i bot decidono da soli).
+ * Compare negli aggiornamenti live. aperta → risposta (Branko ha risposto) → chiusa (il bot l'ha letta).
+ */
+export type UgcQuestion = Doc & {
+  by: string;
+  text: string;
+  /** Risposte rapide proposte dal bot (Branko può anche scrivere libero). */
+  options?: string[];
+  conceptId?: string;
+  briefId?: string;
+  status: "aperta" | "risposta" | "chiusa";
+  answer?: string;
+  answeredAt?: number;
+};
+
 export type UgcSettings = {
   /** Quale bot fa quale ruolo: viene svegliato quando c'è lavoro per lui. */
   roles: Record<RoleId, string | null>;

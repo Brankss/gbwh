@@ -23,6 +23,7 @@ import {
   type UgcConcept,
   type UgcLearning,
   type UgcLogEntry,
+  type UgcQuestion,
   type UgcResearch,
   type UgcResult,
   type UgcReview,
@@ -43,6 +44,7 @@ export const COL = {
   videos: "ugc_videos",
   results: "ugc_results",
   learnings: "ugc_learnings",
+  questions: "ugc_questions",
 } as const;
 
 const SETTINGS_KEY = "ugc:settings";
@@ -571,6 +573,71 @@ export async function deleteLearning(id: string): Promise<Result<true>> {
 }
 
 /* ------------------------------------------------------------------ */
+/* Domande a Branko                                                    */
+/* ------------------------------------------------------------------ */
+
+export const questionInput = z.object({
+  text: t(1500).min(1),
+  options: z.array(t(120).min(1)).max(6).optional(),
+  conceptId: opt(80),
+  briefId: opt(80),
+});
+export const answerInput = z.object({ answer: t(2000).min(1) });
+
+export async function listQuestions(filter: { status?: UgcQuestion["status"]; by?: string } = {}) {
+  const all = await list<UgcQuestion>(COL.questions);
+  return all.filter((q) => (!filter.status || q.status === filter.status) && (!filter.by || q.by === filter.by));
+}
+
+/**
+ * Domanda di un bot a Branko: deve essere rara (i bot decidono da soli). Compare negli aggiornamenti
+ * live della regia, nessun Annuncio e nessun blocco: se Branko risponde, il bot viene svegliato.
+ */
+export async function askQuestion(input: z.input<typeof questionInput>, by: string): Promise<Result<UgcQuestion>> {
+  let concept: UgcConcept | null = null;
+  if (input.conceptId) {
+    concept = await get<UgcConcept>(COL.concepts, input.conceptId);
+    if (!concept) return fail("conceptId: concept inesistente");
+  }
+  if (input.briefId && !(await get(COL.briefs, input.briefId))) return fail("briefId: brief inesistente");
+  // Stessa domanda dallo stesso bot ancora aperta: niente doppioni.
+  const twin = (await listQuestions({ status: "aperta", by })).find((q) => q.text.trim().toLowerCase() === input.text.trim().toLowerCase());
+  if (twin) return ok(twin);
+  const q = await put<UgcQuestion>(
+    COL.questions,
+    stamp(strip({ ...input, briefId: input.briefId ?? concept?.briefId, status: "aperta" as const, by })),
+  );
+  await logChange({ by, action: "domanda", title: q.text.slice(0, 160), conceptId: q.conceptId, briefId: q.briefId });
+  return ok(q);
+}
+
+/** Branko risponde: il bot che ha chiesto viene svegliato con la risposta. */
+export async function answerQuestion(id: string, answer: string, by: string): Promise<Result<UgcQuestion>> {
+  const q = await get<UgcQuestion>(COL.questions, id);
+  if (!q) return fail("Domanda non trovata", 404);
+  const next = await put<UgcQuestion>(COL.questions, { ...q, answer, status: "risposta", answeredAt: Date.now(), updatedAt: Date.now() });
+  await logChange({ by, action: "risposta", title: `${q.text.slice(0, 60)} → ${answer.slice(0, 60)}`, conceptId: q.conceptId, briefId: q.briefId });
+  await wakeWithin(q.by, { kind: "ugc", text: `Branko ha risposto alla tua domanda «${q.text.slice(0, 200)}»:\n${answer}` });
+  return ok(next);
+}
+
+/** Il bot ha letto la risposta e riparte: la domanda si chiude. */
+export async function closeQuestion(id: string, by: string): Promise<Result<UgcQuestion>> {
+  const q = await get<UgcQuestion>(COL.questions, id);
+  if (!q) return fail("Domanda non trovata", 404);
+  if (q.status === "aperta") return fail("Branko non ha ancora risposto.", 409);
+  const next = await put<UgcQuestion>(COL.questions, { ...q, status: "chiusa", updatedAt: Date.now() });
+  await logChange({ by, action: "domanda chiusa", title: q.text.slice(0, 80), conceptId: q.conceptId });
+  return ok(next);
+}
+
+export async function deleteQuestion(id: string): Promise<Result<true>> {
+  if (!(await get(COL.questions, id))) return fail("Domanda non trovata", 404);
+  await remove(COL.questions, [id]);
+  return ok(true);
+}
+
+/* ------------------------------------------------------------------ */
 /* Coda di lavoro per ruolo e panoramica                               */
 /* ------------------------------------------------------------------ */
 
@@ -589,6 +656,14 @@ export async function queue(role: RoleId) {
     todo: stageOf(c.stage).todo,
     since: c.updatedAt,
   }));
+  // Le risposte di Branko alle domande dei bot di questo ruolo vengono prima di tutto.
+  const settings = await getSettings();
+  const bot = settings.roles[role];
+  if (bot) {
+    for (const q of await listQuestions({ status: "risposta", by: bot })) {
+      items.unshift({ kind: "risposta", id: q.id, title: q.text.slice(0, 120), todo: `Branko ha risposto: «${q.answer}». Applica la risposta, poi chiudi la domanda.`, since: q.answeredAt ?? q.updatedAt });
+    }
+  }
   if (role === "stratega") {
     // Brief attivi senza ricerca o senza angoli.
     for (const b of await listBriefs()) {
@@ -611,7 +686,8 @@ export async function overview() {
     getLog({ limit: 40 }),
   ]);
   const byStage = Object.fromEntries(STAGES.map((s) => [s.id, concepts.filter((c) => c.stage === s.id).length])) as Record<StageId, number>;
-  return { byStage, briefs: briefs.length, videos: videos.length, learnings: learnings.length, settings, log };
+  const questions = (await list<UgcQuestion>(COL.questions)).filter((q) => q.status !== "chiusa" || Date.now() - q.updatedAt < 3 * 86_400_000);
+  return { byStage, briefs: briefs.length, videos: videos.length, learnings: learnings.length, settings, log, questions };
 }
 
 /** Tutti i video con concept e numeri riassunti, per la tabella dei risultati. */

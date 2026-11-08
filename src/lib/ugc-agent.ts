@@ -233,6 +233,7 @@ export async function roleQueue(role: RoleId, agent?: string | null) {
   const [items, concepts, videos] = await Promise.all([queue(role), listConcepts(), videosWithResults()]);
   return items.map((it) => {
     const base = { ruolo: role, tipo: it.kind, id: it.id, titolo: it.title, in_attesa: waiting(it.since), dal: iso(it.since) };
+    if (it.kind === "risposta") return { ...base, cosa_fare: it.todo, chiama: [`PATCH ${API}/questions/${it.id} {agent, chiudi:true}`] };
     if (it.kind !== "concept") return { ...base, ...briefStep({ id: it.id }, it.todo) };
     const c = concepts.find((x) => x.id === it.id);
     if (!c) return { ...base, cosa_fare: it.todo, chiama: [] };
@@ -459,6 +460,11 @@ export function protocol(settings: UgcSettings, names: Partial<Record<RoleId, st
       `Quando un concept entra in una fase, il bot con quel ruolo riceve una mail di sveglia che lo rimanda a GET ${API}/queue?agent=<id>. ` +
       (settings.autoWake ? "La sveglia automatica è attiva." : "Ora la sveglia automatica è spenta: controlla la tua coda da solo.") +
       " Non serve che svegli tu gli altri: basta spostare la fase.",
+    domande:
+      "La squadra lavora da sola: decidete voi (il critico è il vostro controllo, il Playbook la vostra memoria). Una domanda a Branko è RARA: solo se senza quella " +
+      "risposta fareste un lavoro sbagliato (es. un dato sul prodotto che non trovate da nessuna parte). Non fermatevi ad aspettare: intanto andate avanti sul resto. " +
+      `POST ${API}/questions {agent, text, options?:[risposte rapide], conceptId?, briefId?}. Branko la vede negli aggiornamenti live; se risponde vieni svegliato e la risposta ` +
+      `è in cima alla tua coda: applicala e chiudi con PATCH ${API}/questions/<id> {agent, chiudi:true}.`,
     annunci:
       "Gli Annunci (POST /api/agent/alerts) sono per Branko e SOLO quando deve decidere o sapere qualcosa oggi. Il sistema avvisa già da solo quando un video è pronto " +
       "o vincente: non duplicare. Niente aggiornamenti di routine.",
@@ -481,6 +487,9 @@ export function protocol(settings: UgcSettings, names: Partial<Record<RoleId, st
       [`GET ${API}/learnings?kind=&strength=&conceptId=`]: "Il Playbook: fissati e provati prima.",
       [`POST ${API}/learnings`]: "{agent, kind, text, strength?, evidence?, conceptId?, videoId?, pinned?}",
       [`PATCH ${API}/learnings/<id>`]: "{agent, …campi} (es. strength:'provato' + evidence).",
+      [`POST ${API}/questions`]: "{agent, text, options?:[…], conceptId?, briefId?} — domanda a Branko, RARA (vedi 'domande').",
+      [`GET ${API}/questions?agent=<id>&status=`]: "Le tue domande e le risposte di Branko.",
+      [`PATCH ${API}/questions/<id>`]: "{agent, chiudi:true} dopo aver applicato la risposta.",
       [`GET ${API}/changes?since=<ms>`]: "Registro: chi ha fatto cosa. Ripassa con since=cursor per restare allineato.",
     },
     valori: {

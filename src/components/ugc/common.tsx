@@ -2,7 +2,8 @@
 
 import { useState, type ReactNode } from "react";
 import type { Bot } from "@/lib/bots";
-import { STAGES, stageOf, type StageId, type UgcBrief, type UgcConcept, type UgcLogEntry, type UgcSettings } from "@/lib/ugc";
+import type { PresenceView } from "@/lib/presence";
+import { STAGES, stageOf, type StageId, type UgcBrief, type UgcConcept, type UgcLogEntry, type UgcQuestion, type UgcSettings } from "@/lib/ugc";
 import type { BriefSummary } from "@/lib/ugc-store";
 
 // Pezzi condivisi dalle pagine della UGC Factory.
@@ -18,6 +19,10 @@ export type UgcOverview = {
   briefList: BriefSummary[];
   concepts: UgcConcept[];
   bots: Bot[];
+  /** Domande dei bot (rare): aperte, con risposta, chiuse da poco. */
+  questions: UgcQuestion[];
+  /** Ultimo segnale di vita dei bot (heartbeat): online se recente, e cosa stanno facendo. */
+  presence: PresenceView[];
 };
 
 /** Colore di ogni fase: grigi per il lavoro creativo, argento quando tocca a te, colori per l'esito. */
