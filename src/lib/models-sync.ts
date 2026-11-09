@@ -108,7 +108,7 @@ async function aaFetch(path: string, key: string) {
 
 export async function syncFromArtificialAnalysis(): Promise<ModelsData> {
   const key = process.env.AA_API_KEY;
-  if (!key) throw new Error("Manca AA_API_KEY: crea una chiave gratuita su artificialanalysis.ai e mettila nelle variabili di Netlify.");
+  if (!key) throw new Error("Manca AA_API_KEY: crea una chiave gratuita su artificialanalysis.ai e mettila nelle variabili d'ambiente del server.");
   const [llm, image, video] = await Promise.all([
     aaFetch("/llms/models", key).then(parseLlms),
     aaFetch("/media/text-to-image", key).then(parseMedia),

@@ -196,6 +196,10 @@ npm run dev
 
 Senza Redis i messaggi stanno in memoria e si perdono al riavvio.
 
+## Deploy
+
+Sulla VM (consigliato): vedi [`deploy/README.md`](deploy/README.md). Installazione con uno script, aggiornamento automatico a ogni push, HTTPS con Caddy, media su disco.
+
 ## Deploy (Netlify)
 
 1. Importa il repo da GitHub. Netlify riconosce Next.js da solo: build command `npm run build`, publish directory `.next`.

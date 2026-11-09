@@ -1,4 +1,5 @@
 import "server-only";
+import { MAX_UPLOAD } from "./media";
 import type { NextRequest } from "next/server";
 import type { z } from "zod";
 import { zodMessage } from "./agent-auth";
@@ -445,7 +446,7 @@ export function protocol(settings: UgcSettings, names: Partial<Record<RoleId, st
       "{data:<base64>, mime:'video/mp4'} (anche 'data:video/mp4;base64,…'), oppure multipart/form-data con il file in 'file' (più agent, notes, hookId, status, durationSec). " +
       "Campi: hookId (quale hook usa), durationSec, qa:{mani, prodotto, labiale, testo, audio, ritmo, etichetta: true|false}, notes, status. " +
       "status 'in revisione' (default) manda il concept dal critico; 'bozza' lo carica senza mandarlo. Ogni caricamento è una nuova versione (v1, v2…). " +
-      "Limite: su Netlify il body di una richiesta è di circa 6 MB (il base64 pesa un terzo in più): per video più pesanti manda un link pubblico. " +
+      `Limite: ogni richiesta può pesare al massimo ${process.env.NETLIFY ? "circa 6" : String(Math.round(MAX_UPLOAD / 1024 / 1024))} MB (il base64 pesa un terzo in più): per video più pesanti manda un link pubblico. ` +
       "Per GUARDARE un video caricato nell'hub (url che inizia con /api/media/…) aprilo sull'indirizzo dell'hub con il tuo token: header Authorization oppure ?token=<token>.",
     risultati:
       "POST …/videos/<videoId>/results {agent, platform:'tiktok'|'meta'|…, date:'AAAA-MM-GG', spend?, impressions?, hookRate?, holdRate?, ctr?, cpc?, purchases?, revenue?, roas?, notes?}. " +

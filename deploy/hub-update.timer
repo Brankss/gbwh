@@ -1,0 +1,10 @@
+[Unit]
+Description=Controlla ogni 2 minuti se c'è una versione nuova dell'hub
+
+[Timer]
+OnBootSec=1min
+OnUnitActiveSec=2min
+Persistent=true
+
+[Install]
+WantedBy=timers.target

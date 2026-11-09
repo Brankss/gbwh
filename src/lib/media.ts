@@ -1,17 +1,27 @@
 import "server-only";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
+import path from "node:path";
 import { getStore } from "@netlify/blobs";
 import type { Media } from "./bots";
 
-// I file caricati dall'agent finiscono su Netlify Blobs; in locale (fuori da Netlify) in memoria.
-export const MAX_UPLOAD = 20 * 1024 * 1024;
+// Dove finiscono i file caricati (dai bot o da te):
+// - MEDIA_DIR impostata (server proprio, es. la VM): sul disco, un file per media + il suo tipo accanto;
+// - su Netlify: Netlify Blobs;
+// - in locale senza niente: in memoria (si perdono al riavvio).
+const MB = 1024 * 1024;
+export const MAX_UPLOAD = (Number(process.env.MAX_UPLOAD_MB) || 20) * MB;
 
 // Solo foto e video "veri": niente SVG/HTML, che servite dal nostro dominio potrebbero eseguire script.
 const ALLOWED = /^(image\/(jpeg|png|gif|webp|avif|heic|heif)|video\/(mp4|webm|quicktime|ogg|x-m4v))$/;
+const ID = /^[0-9a-f-]{36}$/i;
 
 type Stored = { data: ArrayBuffer; mime: string };
 const mem = ((globalThis as { __mediaMem?: Map<string, Stored> }).__mediaMem ??= new Map());
 
+const mediaDir = () => process.env.MEDIA_DIR?.trim() || null;
+
 function blobs() {
+  if (!process.env.NETLIFY && !process.env.NETLIFY_BLOBS_CONTEXT) return null;
   try {
     return getStore({ name: "media", consistency: "strong" });
   } catch {
@@ -30,13 +40,31 @@ export function isAllowedMime(mime: string) {
 /** Salva il file e restituisce il Media da mettere nel messaggio. */
 export async function saveMedia(data: ArrayBuffer, mime: string): Promise<Media> {
   const id = crypto.randomUUID();
-  const store = blobs();
-  if (store) await store.set(id, data, { metadata: { mime } });
-  else mem.set(id, { data, mime });
+  const dir = mediaDir();
+  if (dir) {
+    await mkdir(dir, { recursive: true });
+    await writeFile(path.join(dir, id), Buffer.from(data));
+    await writeFile(path.join(dir, `${id}.json`), JSON.stringify({ mime }));
+  } else {
+    const store = blobs();
+    if (store) await store.set(id, data, { metadata: { mime } });
+    else mem.set(id, { data, mime });
+  }
   return { url: `/api/media/${id}`, type: kindOf(mime) };
 }
 
 export async function readMedia(id: string): Promise<Stored | null> {
+  if (!ID.test(id)) return null;
+  const dir = mediaDir();
+  if (dir) {
+    try {
+      const [buf, meta] = await Promise.all([readFile(path.join(dir, id)), readFile(path.join(dir, `${id}.json`), "utf8")]);
+      const data = buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength) as ArrayBuffer;
+      return { data, mime: String(JSON.parse(meta).mime ?? "application/octet-stream") };
+    } catch {
+      return null;
+    }
+  }
   const store = blobs();
   if (!store) return mem.get(id) ?? null;
   const entry = await store.getWithMetadata(id, { type: "arrayBuffer" });

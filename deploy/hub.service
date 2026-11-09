@@ -1,0 +1,18 @@
+[Unit]
+Description=Hub personale (Next.js)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=hub
+Group=hub
+WorkingDirectory=/opt/hub/current
+EnvironmentFile=/etc/hub.env
+Environment=NODE_ENV=production
+Environment=NEXT_TELEMETRY_DISABLED=1
+ExecStart=/opt/hub/current/node_modules/.bin/next start -H 127.0.0.1 -p 3000
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target

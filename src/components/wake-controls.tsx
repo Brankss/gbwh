@@ -114,7 +114,7 @@ export function WakeSettings() {
               Ha invece: <span className="font-mono text-fg">{data.similar.join(", ")}</span>. Controlla che i nomi siano esattamente quelli sopra.
             </div>
           )}
-          <div>Su Netlify: nomi esatti, scope che include “Functions”, poi un nuovo deploy.</div>
+          <div>Nelle variabili d’ambiente del server: nomi esatti, poi riavvia l’hub.</div>
         </div>
       )}
       {test && test !== "busy" && (

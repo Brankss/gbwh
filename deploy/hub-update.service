@@ -1,0 +1,6 @@
+[Unit]
+Description=Aggiorna l'hub dall'ultimo commit su GitHub
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/hub-update

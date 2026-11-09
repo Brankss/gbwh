@@ -128,7 +128,8 @@ export async function wakeBot(
 
     const bot = (await getBots()).find((b) => b.id === botId);
     const name = bot?.name ?? botId;
-    const site = (process.env.URL ?? "").replace(/\/$/, "");
+    // SITE_URL sul server proprio (VM), URL su Netlify.
+    const site = (process.env.SITE_URL ?? process.env.URL ?? "").replace(/\/$/, "");
     const preview = what.text.length > 500 ? `${what.text.slice(0, 500)}…` : what.text;
     const intro =
       what.kind === "nota"

@@ -73,7 +73,7 @@ export function NoModelsData({ configured }: { configured: boolean }) {
       ) : (
         <>
           Le classifiche si riempiono da sole da <strong>Artificial Analysis</strong> (Intelligence Index, benchmark, arene immagini e video).
-          Crea una chiave API gratuita su artificialanalysis.ai e aggiungila su Netlify come <code>AA_API_KEY</code>. In alternativa un agent
+          Crea una chiave API gratuita su artificialanalysis.ai e aggiungila nelle variabili d’ambiente del server come <code>AA_API_KEY</code>. In alternativa un agent
           può caricarle con <code>POST /api/agent/models</code>.
         </>
       )}
