@@ -8,7 +8,7 @@ import type { UgcBrief } from "@/lib/ugc";
 import type { BriefSummary } from "@/lib/ugc-store";
 import { GROUP, ROW_LINK, Tag } from "./common";
 
-// Tab "Brief": prodotto, target e i numeri di ogni brief.
+// Lista dei brief (pagina /ugc/brief): prodotto, target e i numeri di ogni brief.
 
 type Filter = "tutti" | UgcBrief["status"];
 
@@ -36,20 +36,14 @@ export function BriefList({ briefs, onNew, onEdit }: { briefs: BriefSummary[]; o
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-3">
-        <div className="min-w-0 flex-1">
-          {statuses.length > 1 && (
-            <Pills
-              value={filter}
-              onChange={setFilter}
-              options={[{ value: "tutti" as Filter, label: "Tutti", count: briefs.length }, ...statuses.map((s) => ({ value: s as Filter, label: s, count: briefs.filter((b) => b.status === s).length }))]}
-            />
-          )}
-        </div>
-        <Button variant="ghost" icon="plus" onClick={onNew}>
-          Brief
-        </Button>
-      </div>
+      {/* "Nuovo brief" sta nell'intestazione della pagina: qui solo i filtri, se servono */}
+      {statuses.length > 1 && (
+        <Pills
+          value={filter}
+          onChange={setFilter}
+          options={[{ value: "tutti" as Filter, label: "Tutti", count: briefs.length }, ...statuses.map((s) => ({ value: s as Filter, label: s, count: briefs.filter((b) => b.status === s).length }))]}
+        />
+      )}
 
       <div className={GROUP}>
         {shown.map((b) => (

@@ -67,6 +67,12 @@ export const briefKey = (id: string) => `/api/ugc/briefs/${id}`;
 export const whoName = (bots: Bot[] | undefined, id: string | undefined | null) =>
   !id ? "—" : id === "tu" ? "Branko" : (bots?.find((b) => b.id === id)?.name ?? id);
 
+/** Come whoName, ma per un bot non ancora in bacheca usa il nome che manda col segnale di vita. */
+export function nameOf(data: Pick<UgcOverview, "bots" | "presence">, id: string | undefined | null) {
+  if (!id || id === "tu" || data.bots.some((b) => b.id === id)) return whoName(data.bots, id);
+  return data.presence?.find((p) => p.agent === id.toLowerCase())?.name || id;
+}
+
 /** Chi lavora in una fase: tu, il bot assegnato al ruolo, oppure nessuno. */
 export function stageTurn(stage: StageId, settings: UgcSettings | undefined, bots: Bot[] | undefined) {
   const role = stageOf(stage).role as string | null;

@@ -1,61 +1,97 @@
 "use client";
 
-import { useState } from "react";
-import { Button, Empty, PageBody, PageHeader } from "@/components/kit";
+import { useRef, useState } from "react";
+import { Button, Empty, PageBody, PageHeader, Section, SectionLink } from "@/components/kit";
 import { BriefForm } from "@/components/ugc/brief-form";
-import { BriefList } from "@/components/ugc/briefs";
-import { Chain } from "@/components/ugc/chain";
-import { SkeletonRows, UGC_KEY, type UgcOverview } from "@/components/ugc/common";
+import { UGC_KEY, type UgcOverview } from "@/components/ugc/common";
 import { NewConcept } from "@/components/ugc/new-concept";
-import { Playbook } from "@/components/ugc/playbook";
-import { ReadyStrip } from "@/components/ugc/ready";
-import { Results } from "@/components/ugc/results";
-import { Team } from "@/components/ugc/team";
-import { useApi } from "@/lib/client";
-import { ACTIVE_STAGES } from "@/lib/ugc";
-import type { BriefSummary } from "@/lib/ugc-store";
+import { teamPulse } from "@/components/ugc/regia-events";
+import { Feed } from "@/components/ugc/regia-feed";
+import { Live } from "@/components/ugc/regia-live";
+import { MoreLinks, Overflow } from "@/components/ugc/regia-more";
+import { Numbers } from "@/components/ugc/regia-numbers";
+import { StageDrawer } from "@/components/ugc/regia-stage";
+import { TeamLive } from "@/components/ugc/regia-team";
+import { Workflow, type WorkflowNode } from "@/components/ugc/workflow";
+import { useApi, useNow } from "@/lib/client";
 
-type Tab = "catena" | "brief" | "playbook" | "risultati" | "squadra";
+// UGC Factory, la regia: prima cosa è successo adesso (live), poi il ciclo a blocchi collegati,
+// la squadra, i numeri e il feed. Le sezioni di lavoro (Brief, Playbook, Risultati, Squadra) stanno in fondo.
+// I bot lavorano da soli: Branko guarda, e interviene solo se vuole (o se un video è pronto).
+
+const LIVE_REFRESH = 8_000;
+
+/** Da quale istante un evento conta come "appena arrivato" (per animarlo): tutto ciò che è dopo l'ultimo già visto. */
+function useFreshSince(top: number | undefined) {
+  const [seen, setSeen] = useState<{ top: number | undefined; fresh: number }>({ top, fresh: top ?? Infinity });
+  if (seen.top !== top) setSeen({ top, fresh: seen.top === undefined ? (top ?? Infinity) : seen.top });
+  return seen.fresh;
+}
 
 export default function UgcPage() {
-  const { data, error } = useApi<UgcOverview>(UGC_KEY, { refreshInterval: 30_000 });
-  const [tab, setTab] = useState<Tab>("catena");
-  const [newConcept, setNewConcept] = useState(false);
-  const [briefForm, setBriefForm] = useState<BriefSummary | "new" | null>(null);
+  const { data, error } = useApi<UgcOverview>(UGC_KEY, { refreshInterval: LIVE_REFRESH });
+  const now = useNow();
+  const freshSince = useFreshSince(data ? (data.log[0]?.at ?? 0) : undefined);
+  const [node, setNode] = useState<WorkflowNode | null>(null);
+  const drawer = useRef<HTMLDivElement>(null);
 
-  const live = data ? ACTIVE_STAGES.reduce((n, s) => n + data.byStage[s], 0) : undefined;
+  const [newConcept, setNewConcept] = useState(false);
+  const [briefForm, setBriefForm] = useState(false);
   // Brief creato partendo da "Nuovo concept" (non c'erano brief): poi si torna al concept.
   const [resume, setResume] = useState(false);
   const openNewBrief = () => {
     setNewConcept(false);
     setResume(true);
-    setBriefForm("new");
+    setBriefForm(true);
   };
   const closeBrief = () => {
-    setBriefForm(null);
+    setBriefForm(false);
     setResume(false);
   };
-  const afterBrief = () => {
-    if (resume) setNewConcept(true);
+
+  // Scelto un blocco: la lista della fase compare sotto lo schema; su telefono la si porta in vista.
+  const pick = (n: WorkflowNode | null) => {
+    setNode(n);
+    if (n) requestAnimationFrame(() => drawer.current?.scrollIntoView({ behavior: "smooth", block: "nearest" }));
   };
+
+  const pulse = data ? teamPulse(data.settings, data.presence ?? []) : null;
+  const subtitle = !pulse
+    ? "Regia"
+    : !pulse.team.length
+      ? "● live · nessun bot in squadra"
+      : pulse.online.length
+        ? `● live · ${pulse.online.length} bot al lavoro`
+        : "● live · squadra a riposo";
 
   return (
     <>
       <PageHeader
         wide
         title="UGC Factory"
-        subtitle="La catena dei video UGC"
+        subtitle={subtitle}
         actions={
           <>
             <span className="hidden sm:contents">
-              <Button variant="ghost" icon="plus" onClick={() => setBriefForm("new")}>
+              <Button variant="ghost" icon="plus" onClick={() => setBriefForm(true)}>
                 Nuovo brief
               </Button>
             </span>
-            <Button icon="plus" onClick={() => setNewConcept(true)} disabled={!data}>
-              <span className="sm:hidden">Concept</span>
+            <Button icon="plus" onClick={() => setNewConcept(true)} disabled={!data} label="Nuovo concept">
+              {/* sotto i 360px resta solo il "+", così il titolo non si tronca */}
+              <span className="max-[359px]:hidden sm:hidden">Concept</span>
               <span className="hidden sm:inline">Nuovo concept</span>
             </Button>
+            <Overflow
+              className="sm:hidden"
+              items={[
+                { label: "Nuovo brief", icon: "plus", onClick: () => setBriefForm(true) },
+                { label: "Brief", icon: "folder", href: "/ugc/brief" },
+                { label: "Playbook e libreria", icon: "star", href: "/ugc/playbook" },
+                { label: "Risultati", icon: "chart", href: "/ugc/risultati" },
+                { label: "Squadra", icon: "sliders", href: "/ugc/squadra" },
+              ]}
+            />
           </>
         }
       />
@@ -64,55 +100,61 @@ export default function UgcPage() {
           <Empty icon="alert" title="Non riesco a caricare la factory">
             {error.message}
           </Empty>
+        ) : !data ? (
+          <RegiaSkeleton />
         ) : (
-          <>
-            {data && <ReadyStrip data={data} />}
-
-            {/* 5 sezioni a larghezza piena: su telefono ci stanno tutte senza scorrere di lato */}
-            <div role="tablist" className="matte grid grid-cols-5 gap-1 rounded-2xl p-1">
-              {(
-                [
-                  ["catena", "Catena", live],
-                  ["brief", "Brief", data?.briefList.length],
-                  ["playbook", "Playbook", undefined],
-                  ["risultati", "Risultati", undefined],
-                  ["squadra", "Squadra", undefined],
-                ] as const
-              ).map(([value, label, count]) => (
-                <button
-                  key={value}
-                  role="tab"
-                  aria-selected={tab === value}
-                  onClick={() => setTab(value)}
-                  className={`press h-9 min-w-0 truncate rounded-xl px-1 text-[12px] font-medium min-[400px]:text-[13px] sm:text-sm ${
-                    tab === value ? "gloss text-fg" : "border border-transparent text-muted hover:bg-white/[0.04] hover:text-fg"
-                  }`}
-                >
-                  {label}
-                  {count !== undefined && count > 0 && <span className="ml-1 hidden text-xs text-muted tabular-nums sm:inline">{count}</span>}
-                </button>
-              ))}
+          <div className="grid grid-cols-1 gap-8 md:gap-10 lg:grid-cols-12 lg:gap-x-6">
+            <div className="min-w-0 lg:order-1 lg:col-span-7 xl:col-span-8">
+              <Live data={data} now={now} freshSince={freshSince} onNewBrief={() => setBriefForm(true)} onNewConcept={() => setNewConcept(true)} />
             </div>
 
-            {!data ? (
-              <SkeletonRows rows={4} />
-            ) : tab === "catena" ? (
-              <Chain data={data} />
-            ) : tab === "brief" ? (
-              <BriefList briefs={data.briefList} onNew={() => setBriefForm("new")} onEdit={setBriefForm} />
-            ) : tab === "playbook" ? (
-              <Playbook data={data} />
-            ) : tab === "risultati" ? (
-              <Results />
-            ) : (
-              <Team data={data} />
-            )}
-          </>
+            <Section title="Il ciclo" className="min-w-0 lg:order-3 lg:col-span-12">
+              <Workflow data={data} selected={node} onSelect={pick} />
+              <div ref={drawer} className="scroll-mt-4 pt-1">
+                <StageDrawer data={data} node={node} now={now} onClose={() => setNode(null)} />
+              </div>
+            </Section>
+
+            <Section title="Squadra live" className="min-w-0 lg:order-2 lg:col-span-5 xl:col-span-4" action={<SectionLink href="/ugc/squadra">Gestisci</SectionLink>}>
+              <TeamLive data={data} now={now} />
+            </Section>
+
+            <Section title="Numeri" className="min-w-0 lg:sticky lg:top-6 lg:order-5 lg:col-span-5 lg:self-start xl:col-span-4" action={<SectionLink href="/ugc/risultati">Risultati</SectionLink>}>
+              <Numbers data={data} />
+            </Section>
+
+            <Section title="Feed" className="min-w-0 lg:order-4 lg:col-span-7 xl:col-span-8">
+              <Feed data={data} now={now} freshSince={freshSince} />
+            </Section>
+
+            <Section title="Tutto il resto" className="min-w-0 lg:order-6 lg:col-span-12">
+              <MoreLinks data={data} />
+            </Section>
+          </div>
         )}
       </PageBody>
 
       {newConcept && data && <NewConcept briefs={data.briefList} onClose={() => setNewConcept(false)} onNewBrief={openNewBrief} />}
-      {briefForm && <BriefForm brief={briefForm === "new" ? undefined : briefForm} onClose={closeBrief} onSaved={afterBrief} />}
+      {briefForm && <BriefForm onClose={closeBrief} onSaved={() => resume && setNewConcept(true)} />}
     </>
+  );
+}
+
+function RegiaSkeleton() {
+  return (
+    <div className="grid grid-cols-1 gap-8 md:gap-10 lg:grid-cols-12 lg:gap-x-6" aria-busy>
+      <div className="space-y-3 lg:col-span-7 xl:col-span-8">
+        <div className="skeleton h-4 w-16 rounded-full" />
+        <div className="skeleton h-52 rounded-[1.25rem]" />
+      </div>
+      <div className="space-y-3 lg:col-span-5 xl:col-span-4">
+        <div className="skeleton h-4 w-24 rounded-full" />
+        <div className="skeleton h-52 rounded-[1.25rem]" />
+      </div>
+      <div className="space-y-3 lg:col-span-12">
+        <div className="skeleton h-4 w-20 rounded-full" />
+        <div className="skeleton h-44 rounded-[1.25rem]" />
+      </div>
+    </div>
   );
 }
