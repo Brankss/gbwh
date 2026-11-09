@@ -76,6 +76,8 @@ echo "Sito: https://$HOST"
 log "Servizi"
 curl -fsSL "$RAW/$BRANCH/deploy/update.sh" -o /usr/local/bin/hub-update
 chmod 755 /usr/local/bin/hub-update
+curl -fsSL "$RAW/$BRANCH/deploy/check.sh" -o /usr/local/bin/hub-check
+chmod 755 /usr/local/bin/hub-check
 curl -fsSL "$RAW/$BRANCH/deploy/hub.service" -o /etc/systemd/system/hub.service
 curl -fsSL "$RAW/$BRANCH/deploy/hub-update.service" -o /etc/systemd/system/hub-update.service
 curl -fsSL "$RAW/$BRANCH/deploy/hub-update.timer" -o /etc/systemd/system/hub-update.timer
@@ -105,6 +107,6 @@ log "Controllo"
 sleep 4
 if curl -fsS -o /dev/null "http://127.0.0.1:3000/login"; then echo "Hub acceso sulla VM."; else echo "L'hub non risponde ancora: guarda 'journalctl -u hub -n 50'"; fi
 echo
-echo "Fatto. Il sito sarà su:  https://$HOST"
+echo "Fatto. Il sito sarà su:  https://$HOST   (controllo veloce: sudo hub-check)"
 echo "Se non si apre: su Azure apri le porte 80 e 443 in ingresso (VM > Rete > Aggiungi regola porta in ingresso),"
 echo "poi aspetta un minuto che Caddy prenda il certificato (log: journalctl -u caddy -n 50)."

@@ -33,6 +33,7 @@ ln -sfn "$REL" "$APP/current.new" && mv -Tf "$APP/current.new" "$APP/current"
 
 # Gli script di servizio arrivano con il codice: si aggiornano da soli.
 install -m 755 "$REL/deploy/update.sh" /usr/local/bin/hub-update
+install -m 755 "$REL/deploy/check.sh" /usr/local/bin/hub-check
 for f in hub.service hub-update.service hub-update.timer; do
   if ! cmp -s "$REL/deploy/$f" "/etc/systemd/system/$f"; then
     install -m 644 "$REL/deploy/$f" "/etc/systemd/system/$f"
