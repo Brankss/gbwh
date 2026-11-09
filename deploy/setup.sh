@@ -58,20 +58,11 @@ id hub >/dev/null 2>&1 || useradd --system --create-home --home-dir /home/hub --
 mkdir -p "$APP/releases" "$DATA/media"
 chown -R hub:hub "$APP" "$DATA"
 
-log "Indirizzo del sito"
-HOST="$(grep -E '^SITE_HOST=' "$ENV_FILE" | cut -d= -f2- || true)"
-if [ -z "$HOST" ]; then
-  IP="$(curl -fsS https://api.ipify.org || curl -fsS https://ifconfig.me)"
-  [ -n "$IP" ] || die "non riesco a sapere l'IP pubblico: aggiungi SITE_HOST=<dominio> in $ENV_FILE"
-  HOST="${IP//./-}.sslip.io" # nome gratuito che punta al tuo IP, valido per il certificato HTTPS
-  echo "SITE_HOST=$HOST" >>"$ENV_FILE"
-fi
-grep -q '^SITE_URL=' "$ENV_FILE" || echo "SITE_URL=https://$HOST" >>"$ENV_FILE"
+log "Variabili di base"
 grep -q '^MEDIA_DIR=' "$ENV_FILE" || echo "MEDIA_DIR=$DATA/media" >>"$ENV_FILE"
 grep -q '^MAX_UPLOAD_MB=' "$ENV_FILE" || echo "MAX_UPLOAD_MB=100" >>"$ENV_FILE"
 chown root:hub "$ENV_FILE"
 chmod 640 "$ENV_FILE"
-echo "Sito: https://$HOST"
 
 log "Servizi"
 curl -fsSL "$RAW/$BRANCH/deploy/update.sh" -o /usr/local/bin/hub-update
@@ -81,27 +72,21 @@ chmod 755 /usr/local/bin/hub-check
 curl -fsSL "$RAW/$BRANCH/deploy/hub.service" -o /etc/systemd/system/hub.service
 curl -fsSL "$RAW/$BRANCH/deploy/hub-update.service" -o /etc/systemd/system/hub-update.service
 curl -fsSL "$RAW/$BRANCH/deploy/hub-update.timer" -o /etc/systemd/system/hub-update.timer
-cat >/etc/caddy/Caddyfile <<CADDY
-$HOST {
-	encode zstd gzip
-	request_body {
-		max_size 120MB
-	}
-	reverse_proxy 127.0.0.1:3000
-}
-CADDY
 systemctl daemon-reload
 
 if command -v ufw >/dev/null && ufw status | grep -q "Status: active"; then
   ufw allow 80/tcp && ufw allow 443/tcp
 fi
 
-log "Primo build (qualche minuto)"
+systemctl enable caddy
+
+log "Primo build (qualche minuto). Indirizzo e HTTPS si configurano da soli."
 /usr/local/bin/hub-update --force
 
 systemctl enable --now hub
 systemctl enable --now hub-update.timer
-systemctl restart caddy
+HOST="$(grep -E '^SITE_HOST=' "$ENV_FILE" | tail -1 | cut -d= -f2-)"
+[ -n "$HOST" ] || die "non riesco a sapere l'IP pubblico: aggiungi SITE_HOST=<dominio> in $ENV_FILE e rilancia"
 
 log "Controllo"
 sleep 4
