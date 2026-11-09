@@ -39,7 +39,7 @@ export default function BriefPageShell() {
 }
 
 const back = (
-  <Link href="/ugc" aria-label="UGC Factory" className={BACK_CLASS}>
+  <Link href="/ugc/brief" aria-label="Tutti i brief" className={BACK_CLASS}>
     <Icon name="back" />
   </Link>
 );

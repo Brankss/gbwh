@@ -79,6 +79,13 @@ Stesso storage, con queste differenze rispetto alla pagina:
 
 | Pagina | Cosa mostra |
 |---|---|
-| `/ugc` | Catena (bacheca per fasi), Brief, Playbook, Risultati, Squadra |
-| `/ugc/brief/[id]` | Brief, ricerca e concept del brief |
+| `/ugc` | **Regia**: in alto il live (ultimo aggiornamento, video pronti, eventuali domande dei bot). Poi il ciclo come schema a blocchi collegati (`workflow*.tsx`, tocchi un blocco e vedi cosa c'è dentro), la squadra live (heartbeat), i numeri e il feed |
+| `/ugc/brief`, `/ugc/brief/[id]` | Brief, ricerca e concept del brief |
+| `/ugc/playbook` | Lezioni e libreria creativa |
+| `/ugc/risultati` | Numeri per video |
+| `/ugc/squadra` | Chi fa quale ruolo, sveglia automatica |
 | `/ugc/[id]` | Concept: fasi, hook, storia, storyboard, revisioni, video, numeri, registro |
+
+## Domande dei bot
+
+Sono rare: i bot decidono da soli. Una domanda compare negli aggiornamenti live della regia, senza Annuncio e senza fermare la catena. Se Branko risponde, il bot viene svegliato e trova la risposta in cima alla sua coda, poi chiude la domanda.
