@@ -18,11 +18,15 @@ envset() {
   if grep -qE "^$1=" "$ENV_FILE"; then sed -i "s|^$1=.*|$1=$2|" "$ENV_FILE"; else echo "$1=$2" >>"$ENV_FILE"; fi
 }
 
-# IP pubblico: prima chiediamo ad Azure (affidabile), poi a un servizio esterno.
+# IP pubblico: prima chiediamo ad Azure, poi a un servizio esterno.
+# Attenzione: con gli IP pubblici "Standard" Azure risponde vuoto senza errore, quindi controlliamo il formato.
 public_ip() {
-  curl -fsS -m 3 -H Metadata:true \
-    "http://169.254.169.254/metadata/instance/network/interface/0/ipv4/ipAddress/0/publicIpAddress?api-version=2021-02-01&format=text" 2>/dev/null ||
-    curl -fsS -m 5 https://api.ipify.org 2>/dev/null || true
+  local ip
+  ip="$(curl -fsS -m 3 -H Metadata:true \
+    "http://169.254.169.254/metadata/instance/network/interface/0/ipv4/ipAddress/0/publicIpAddress?api-version=2021-02-01&format=text" 2>/dev/null || true)"
+  [[ "$ip" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]] || ip="$(curl -fsS -m 5 https://api.ipify.org 2>/dev/null || true)"
+  [[ "$ip" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]] || ip="$(curl -fsS -m 5 https://ifconfig.me 2>/dev/null || true)"
+  [[ "$ip" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]] && echo "$ip" || true
 }
 
 # Indirizzo del sito + configurazione HTTPS. Restituisce 0 se ha cambiato qualcosa che richiede di riavviare l'hub.
