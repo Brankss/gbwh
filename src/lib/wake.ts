@@ -4,8 +4,8 @@ import { redis } from "./redis";
 import { getBots, getReadAt } from "./store";
 
 /**
- * Sveglia i bot via email: tutti condividono una casella (es. pandoro@mail.grokbot.com) e il bot
- * giusto si riconosce dal tag nell'indirizzo: pandoro+syrup@mail.grokbot.com → Syrup.
+ * Sveglia i bot via email: tutti condividono una casella (es. bot@esempio.it) e il bot
+ * giusto si riconosce dal tag nell'indirizzo: bot+syrup@esempio.it → Syrup.
  * Il nome del bot è anche nell'oggetto ("[syrup] …") nel caso il tag si perda.
  *
  * Variabili: WAKE_EMAIL, SMTP_HOST, SMTP_PORT (465), SMTP_USER, SMTP_PASS, MAIL_FROM (facoltativa).
@@ -42,7 +42,7 @@ export function wakeDiagnosis() {
   return { missing, similar };
 }
 
-/** pandoro@mail.grokbot.com + syrup → pandoro+syrup@mail.grokbot.com */
+/** bot@esempio.it + syrup → bot+syrup@esempio.it */
 export function taggedAddress(base: string, botId: string) {
   const at = base.lastIndexOf("@");
   if (at < 1) throw new Error("WAKE_EMAIL non valida");

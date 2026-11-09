@@ -181,7 +181,7 @@ Da **Artificial Analysis** (Intelligence Index, MMLU-Pro, GPQA, HLE, LiveCodeBen
 
 ## Sveglia dei bot via email
 
-Quando scrivi a un bot (o crei una nota visibile a lui) l'hub gli manda una mail di sveglia alla casella comune, con il **tag del bot** nell'indirizzo: `pandoro+syrup@mail.grokbot.com`. Il nome è anche nell'oggetto: `[syrup] Nuovo messaggio per Syrup`.
+Quando scrivi a un bot (o crei una nota visibile a lui) l'hub gli manda una mail di sveglia alla casella comune, con il **tag del bot** nell'indirizzo: `bot+syrup@esempio.it`. Il nome è anche nell'oggetto: `[syrup] Nuovo messaggio per Syrup`.
 
 - Niente raffiche: se il bot è già stato svegliato e non ha ancora letto la bacheca, non parte un'altra mail (riprova dopo 15 minuti se dorme ancora).
 - Si attiva impostando `WAKE_EMAIL` e il server di posta (`SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`): vedi `.env.example`.
