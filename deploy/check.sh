@@ -11,11 +11,12 @@ if systemctl is-active -q hub && curl -fsS -o /dev/null -m 5 http://127.0.0.1:30
 elif [ ! -e /opt/hub/current ]; then ko "Il sito non è ancora stato compilato: sudo hub-update --force"
 else ko "Hub spento o in errore. Causa: $(journalctl -u hub -n 30 --no-pager | grep -iE 'error|errore' | tail -1 | cut -c1-160)"; fi
 
+CERT="$(ls /var/lib/caddy/.local/share/caddy/certificates/*/"$HOST"/"$HOST".crt 2>/dev/null | head -1)"
 if ! systemctl is-active -q caddy; then ko "Caddy (HTTPS) spento: sudo systemctl restart caddy"
-elif journalctl -u caddy --since "-2h" --no-pager | grep -q "certificate obtained successfully"; then ok "Certificato HTTPS ok."
-elif journalctl -u caddy --since "-2h" --no-pager | grep -qiE "timeout|connection refused|challenge failed|could not get certificate|no route"; then
-  ko "HTTPS bloccato: su Azure apri in ingresso le porte 80 e 443 (VM > Rete > Aggiungi regola porta in ingresso)."
-else ok "Caddy acceso (certificato in arrivo o già presente)."; fi
+elif [ -n "$HOST" ] && [ -n "$CERT" ]; then ok "Certificato HTTPS ok."
+elif journalctl -u caddy --since "-15min" --no-pager | grep -qiE "timeout|connection refused|challenge failed|could not get certificate|no route"; then
+  ko "HTTPS bloccato: controlla che su Azure le porte 80 e 443 siano aperte in ingresso, poi aspetta un minuto."
+else ok "Caddy acceso (certificato in arrivo: riprova tra un minuto)."; fi
 
 grep -q '^SMTP_PASS=.' /etc/hub.env && ok "Sveglia email configurata." || printf '• Sveglia email non configurata (facoltativa).\n'
 if [ -n "$HOST" ]; then echo "Sito: https://$HOST"; else ko "Indirizzo del sito sconosciuto: aggiungi SITE_HOST in /etc/hub.env e lancia sudo hub-update"; fi
