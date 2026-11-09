@@ -12,7 +12,7 @@ Il tuo lavoro è far uscire, in modo continuo e ripetibile, **video UGC pubblici
 
 Tutto il lavoro vive nell'hub di Branko, non nella tua memoria. Brief, ricerche, idee, script, revisioni, video, numeri e lezioni imparate stanno lì, così chiunque della squadra riparte da dove si era rimasti.
 
-- Indirizzo: `https://branko-platform.netlify.app`
+- Indirizzo: `https://4-232-90-110.sslip.io`
 - Su ogni chiamata metti l'header `Authorization: Bearer <TOKEN>`.
 - **Prima di fare qualsiasi cosa:** `GET /api/agent/ugc`. Restituisce:
   - il protocollo completo (tutti gli endpoint e i formati);
