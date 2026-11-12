@@ -187,6 +187,22 @@ export async function wakeBot(
 }
 
 /**
+ * Mail di sveglia "grezza" (stessa casella, stesso tag del bot nell'indirizzo), per chi gestisce da sé
+ * testo e anti-raffica: la usa la chat a parte di fillobot. Non lancia errori, al massimo 6 secondi.
+ */
+export async function sendWakeMail(botId: string, subject: string, lines: string[]): Promise<WakeResult> {
+  if (!wakeConfigured()) return "skipped-not-configured";
+  const send = mailer()
+    .sendMail({ from: env("MAIL_FROM") || env("SMTP_USER"), to: taggedAddress(env("WAKE_EMAIL")!, botId), subject: `[${botId}] ${subject}`, text: lines.join("\n") })
+    .then(() => "sent" as const)
+    .catch((e) => {
+      console.error(`[wake] invio fallito per ${botId}`, e);
+      return "failed" as const;
+    });
+  return Promise.race([send, new Promise<WakeResult>((r) => setTimeout(() => r("timeout"), 6_000))]);
+}
+
+/**
  * Sveglia con un tetto di tempo: si aspetta l'invio (su serverless, se rispondiamo prima,
  * la funzione può spegnersi e la mail non partire), ma mai più di `ms` millisecondi.
  */
